@@ -55,7 +55,7 @@ interface BrandingProviderProps {
   initialBranding?: BrandingSettings
 }
 
-export function BrandingProvider({ 
+function BrandingProvider({ 
   children, 
   tenantId, 
   initialBranding 
@@ -301,7 +301,7 @@ export function BrandingProvider({
   )
 }
 
-export function useBranding(): BrandingContextType {
+const useBranding = (): BrandingContextType => {
   const context = useContext(BrandingContext)
   if (context === undefined) {
     throw new Error('useBranding must be used within a BrandingProvider')
@@ -361,3 +361,4 @@ function hexToHsl(hex: string): string {
 
 // Export the BrandingSettings type for use in other components
 export type { BrandingSettings, BrandingUpdateInput, BrandingContextType }
+export { BrandingProvider, useBranding }

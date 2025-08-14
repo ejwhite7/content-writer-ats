@@ -3,34 +3,36 @@ import { Inter } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import { cn } from '@/lib/utils'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { BrandingProvider } from '@/lib/branding/branding-provider'
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
+import * as Sentry from '@sentry/nextjs';
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    default: 'ATS Platform - Advanced Talent Acquisition',
-    template: '%s | ATS Platform'
+    default: 'Content Writer Jobs - Find Your Next Writing Opportunity',
+    template: '%s | Content Writer Jobs'
   },
-  description: 'Modern applicant tracking system with AI-powered candidate vetting and seamless hiring workflows.',
-  keywords: ['ATS', 'hiring', 'recruitment', 'talent acquisition', 'applicant tracking'],
-  authors: [{ name: 'ATS Platform Team' }],
-  creator: 'ATS Platform',
+  description: 'Connect with companies looking for talented content writers. Browse vetted writing opportunities, showcase your skills, and land your perfect content writing role.',
+  keywords: ['content writer jobs', 'writing jobs', 'copywriter', 'blog writer', 'content marketing', 'freelance writing', 'content creation', 'writing career'],
+  authors: [{ name: 'Content Writer Jobs' }],
+  creator: 'Content Writer Jobs',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    title: 'ATS Platform - Advanced Talent Acquisition',
-    description: 'Modern applicant tracking system with AI-powered candidate vetting and seamless hiring workflows.',
-    siteName: 'ATS Platform',
+    title: 'Content Writer Jobs - Find Your Next Writing Opportunity',
+    description: 'Connect with companies looking for talented content writers. Browse vetted writing opportunities, showcase your skills, and land your perfect content writing role.',
+    siteName: 'Content Writer Jobs',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ATS Platform - Advanced Talent Acquisition',
-    description: 'Modern applicant tracking system with AI-powered candidate vetting and seamless hiring workflows.',
-    creator: '@atsplatform',
+    title: 'Content Writer Jobs - Find Your Next Writing Opportunity',
+    description: 'Connect with companies looking for talented content writers. Browse vetted writing opportunities, showcase your skills, and land your perfect content writing role.',
+    creator: '@contentwriterjobs',
   },
   robots: {
     index: true,
@@ -46,6 +48,9 @@ export const metadata: Metadata = {
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,
   },
+  other: {
+    ...Sentry.getTraceData()
+  }
 }
 
 export default function RootLayout({
@@ -74,12 +79,14 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <div className="relative flex min-h-screen flex-col">
-              <main className="flex-1">
-                {children}
-              </main>
-            </div>
-            <Toaster />
+            <BrandingProvider tenantId="default">
+              <div className="relative flex min-h-screen flex-col">
+                <main className="flex-1">
+                  {children}
+                </main>
+              </div>
+              <Toaster />
+            </BrandingProvider>
           </ThemeProvider>
         </body>
       </html>

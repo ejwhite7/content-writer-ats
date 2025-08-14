@@ -1,5 +1,5 @@
 {
-  "name": "ats-platform",
+  "name": "content-writer-jobs",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,8 +11,7 @@
     "db:generate": "supabase gen types typescript --project-id $NEXT_PUBLIC_SUPABASE_PROJECT_ID --schema public > lib/supabase/types.ts",
     "db:reset": "supabase db reset",
     "db:migrate": "supabase migration up",
-    "setup:cloudflare": "node scripts/setup-cloudflare-security.js",
-    "setup:production": "npm run db:migrate && npm run setup:cloudflare",
+    "setup:production": "npm run db:migrate",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -37,7 +36,7 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.1",
     "@radix-ui/react-tooltip": "^1.1.2",
-    "@sentry/nextjs": "^8.20.0",
+    "@sentry/nextjs": "^10.5.0",
     "@supabase/supabase-js": "^2.44.4",
     "@tiptap/pm": "^2.5.9",
     "@tiptap/react": "^2.5.9",

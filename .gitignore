@@ -171,3 +171,5 @@ wrangler.toml
 # Test artifacts
 test-results/
 test-results.xml
+# Sentry Config File
+.env.sentry-build-plugin

@@ -4,7 +4,7 @@ import { WritingQualityAnalyzer } from './writing-quality-analyzer'
 import { SEOAnalyzer } from './seo-analyzer'
 import { EnglishProficiencyAnalyzer } from './english-proficiency-analyzer'
 import { AIDetectionAnalyzer } from './ai-detection-analyzer'
-import { cache } from '@/lib/redis/cache'
+// Cache removed - using direct API calls for simplicity
 import * as crypto from 'crypto'
 
 export interface AIScores {
@@ -53,12 +53,8 @@ export class AIScorer {
       // Generate cache key based on content and settings
       const cacheKey = this.generateCacheKey(content, jobSettings)
       
-      // Try to get cached result
-      const cachedResult = await cache.getCachedAIScores(cacheKey)
-      if (cachedResult) {
-        console.log('Using cached AI scoring result')
-        return cachedResult
-      }
+      // Cache disabled for simplicity
+      console.log('Running AI scoring analysis')
 
       // Run all scoring analyses in parallel
       const [
@@ -111,8 +107,7 @@ export class AIScorer {
         anthropic_analysis: anthropicAnalysis
       }
 
-      // Cache the result for 24 hours (AI scores rarely change for same content)
-      await cache.cacheAIScores(cacheKey, result, 86400)
+      // Cache disabled for simplicity - in production consider adding cache back
       
       return result
 

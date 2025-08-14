@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { 
   DropdownMenu,
@@ -15,32 +16,22 @@ import {
   Menu, 
   X, 
   Search, 
-  Building2, 
-  Users, 
-  FileText, 
   Briefcase,
   ChevronDown,
   UserPlus,
   LogIn
 } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
+import { useBranding } from '@/lib/branding/branding-provider'
 
 export function PublicHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { isSignedIn, user } = useUser()
+  
+  const { branding } = useBranding()
 
   const navigation = [
     { name: 'Find Jobs', href: '/jobs', icon: Search },
-    { name: 'Companies', href: '/companies', icon: Building2 },
-    { name: 'About', href: '/about', icon: Users },
-    { name: 'Resources', href: '/resources', icon: FileText },
-  ]
-
-  const resources = [
-    { name: 'Career Guide', href: '/resources/career-guide' },
-    { name: 'Resume Tips', href: '/resources/resume-tips' },
-    { name: 'Interview Prep', href: '/resources/interview-prep' },
-    { name: 'Salary Guide', href: '/resources/salary-guide' },
   ]
 
   return (
@@ -50,9 +41,19 @@ export function PublicHeader() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <Briefcase className="h-8 w-8 text-primary" />
+              {branding?.logo_url ? (
+                <Image
+                  src={branding.logo_url}
+                  alt={branding.company_name || 'Logo'}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8"
+                />
+              ) : (
+                <Briefcase className="h-8 w-8 text-primary" />
+              )}
               <span className="font-bold text-xl bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                VettingPro
+                {branding?.company_name || 'Content Writer Jobs'}
               </span>
             </Link>
           </div>
@@ -63,39 +64,7 @@ export function PublicHeader() {
               href="/jobs" 
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
-              Find Jobs
-            </Link>
-            <Link 
-              href="/companies" 
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Companies
-            </Link>
-            
-            {/* Resources Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Resources
-                <ChevronDown className="ml-1 h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuLabel>Career Resources</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {resources.map((item) => (
-                  <DropdownMenuItem key={item.name} asChild>
-                    <Link href={item.href}>
-                      {item.name}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <Link 
-              href="/about" 
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              About
+              Content Writing Jobs
             </Link>
           </nav>
 

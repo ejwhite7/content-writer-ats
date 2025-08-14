@@ -34,8 +34,34 @@ export interface Database {
 }
 
 export function createClient() {
-  return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('Supabase environment variables not configured. Using mock client.')
+    // Return a mock client for development when env vars are not set
+    return {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: null, error: null })
+          })
+        }),
+        insert: () => ({
+          select: () => ({
+            single: () => Promise.resolve({ data: null, error: null })
+          })
+        }),
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: () => Promise.resolve({ data: null, error: null })
+            })
+          })
+        })
+      })
+    } as any
+  }
+  
+  return createSupabaseClient<Database>(supabaseUrl, supabaseKey)
 }

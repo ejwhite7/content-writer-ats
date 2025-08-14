@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ErrorReporter } from '@/lib/monitoring/sentry-utils'
+// Simplified error handling - Sentry monitoring removed
 import { ZodError } from 'zod'
 
 export interface APIError extends Error {
@@ -153,15 +153,9 @@ export function handleAPIError(
     }
   }
 
-  // Report to Sentry if enabled and it's a server error
+  // Simplified error reporting - log to console for now
   if (reportToSentry && statusCode >= 500 && error instanceof Error) {
-    const userId = request?.headers.get('x-user-id') || undefined
-    ErrorReporter.reportAPIError(
-      error,
-      endpoint || request?.nextUrl.pathname || 'unknown',
-      method || request?.method || 'unknown',
-      userId
-    )
+    console.error(`API Error [${statusCode}] at ${endpoint || request?.nextUrl.pathname || 'unknown'}:`, error)
   }
 
   // Create error response

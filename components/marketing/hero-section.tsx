@@ -47,18 +47,18 @@ export function HeroSection({
   }
 
   const popularSearches = [
-    'Software Engineer',
-    'Product Manager', 
-    'Data Scientist',
-    'UX Designer',
-    'DevOps Engineer'
+    'Blog Writer',
+    'Content Marketing', 
+    'Copywriter',
+    'Technical Writer',
+    'SEO Content Writer'
   ]
 
   const benefits = [
-    'AI-powered job matching',
+    'AI-powered content assessment',
     'Direct company connections',
     'Real-time application tracking',
-    'Personalized recommendations'
+    'Writing-specific opportunities'
   ]
 
   return (
@@ -75,23 +75,23 @@ export function HeroSection({
               <div className="inline-flex">
                 <Badge variant="secondary" className="text-sm px-4 py-2">
                   <TrendingUp className="h-4 w-4 mr-2" />
-                  #1 AI-Powered ATS Platform
+                  Content Writer Job Board
                 </Badge>
               </div>
 
               {/* Headline */}
               <div className="space-y-4">
                 <h1 className="text-4xl lg:text-6xl font-bold tracking-tight">
-                  Find Your 
+                  Find Your Next
                   <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                    {' '}Dream Job
+                    {' '}Content Writing
                   </span>
                   <br />
-                  With AI Precision
+                  Opportunity
                 </h1>
                 <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
-                  Connect with top companies through our intelligent matching system. 
-                  Get discovered, apply smarter, and land your perfect role faster than ever.
+                  Connect with companies looking for talented content writers. 
+                  Browse vetted opportunities and showcase your writing skills.
                 </p>
               </div>
 
@@ -101,7 +101,7 @@ export function HeroSection({
                   <div className="flex items-center flex-1 min-w-0">
                     <Search className="h-5 w-5 text-muted-foreground ml-3 mr-2 flex-shrink-0" />
                     <Input
-                      placeholder="Job title, keywords, or company"
+                      placeholder="Content writer, blog writer, copywriter..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="border-0 shadow-none focus-visible:ring-0 text-base"
@@ -119,7 +119,7 @@ export function HeroSection({
                   </div>
                   
                   <Button type="submit" size="lg" className="px-8">
-                    Search Jobs
+                    Search Writing Jobs
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
@@ -157,7 +157,7 @@ export function HeroSection({
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/jobs">
                   <Button size="lg" className="w-full sm:w-auto">
-                    Browse All Jobs
+                    Browse Writing Jobs
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </Link>
@@ -224,10 +224,10 @@ export function HeroSection({
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
-                      "I found my dream job in just 2 weeks! The AI matching was incredibly accurate."
+                      "I found my perfect content writing role in just 2 weeks! The writing assessment was spot-on."
                     </p>
                     <div className="text-sm font-medium">
-                      Sarah Chen, Software Engineer at Google
+                      Sarah Chen, Content Writer at TechCorp
                     </div>
                   </div>
                 </div>

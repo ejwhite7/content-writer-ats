@@ -112,18 +112,13 @@ jest.mock('@/lib/supabase/client', () => ({
   })),
 }))
 
-// Mock Redis
+// Mock removed dependencies (Redis, Sentry) - kept for test compatibility
 jest.mock('@/lib/redis/client', () => ({
-  getRedisClient: jest.fn(() => ({
-    get: jest.fn(),
-    set: jest.fn(),
-    del: jest.fn(),
-    ping: jest.fn().mockResolvedValue('PONG'),
-  })),
-  checkRedisHealth: jest.fn().mockResolvedValue(true),
+  getRedisClient: jest.fn(() => null),
+  checkRedisHealth: jest.fn().mockResolvedValue(false),
 }))
 
-// Mock Sentry
+// Legacy Sentry mock - dependencies removed
 jest.mock('@sentry/nextjs', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),

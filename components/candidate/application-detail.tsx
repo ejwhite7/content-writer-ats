@@ -50,7 +50,7 @@ interface ApplicationDetailProps {
     messages?: Array<{
       id: string
       content: string
-      created_at: string
+      createdAt: string
       sender?: {
         first_name?: string
         last_name?: string
@@ -176,7 +176,7 @@ export function ApplicationDetail({ application }: ApplicationDetailProps) {
             <CardHeader>
               <CardTitle>Application Overview</CardTitle>
               <CardDescription>
-                Submitted on {format(new Date(application.created_at), 'MMMM d, yyyy')}
+                Submitted on {format(new Date(application.createdAt), 'MMMM d, yyyy')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -185,7 +185,7 @@ export function ApplicationDetail({ application }: ApplicationDetailProps) {
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">Applied:</span>
-                    <span>{format(new Date(application.created_at), 'MMM d, yyyy')}</span>
+                    <span>{format(new Date(application.createdAt), 'MMM d, yyyy')}</span>
                   </div>
                   
                   {application.location_city && application.location_country && (
@@ -211,7 +211,7 @@ export function ApplicationDetail({ application }: ApplicationDetailProps) {
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Desired Compensation:</span>
                       <span>
-                        ${application.desired_compensation_amount} {COMPENSATION_FREQUENCY_LABELS[application.desired_compensation_frequency]}
+                        ${application.desired_compensation_amount} {application.desired_compensation_frequency ? COMPENSATION_FREQUENCY_LABELS[application.desired_compensation_frequency] : ''}
                       </span>
                     </div>
                   )}
@@ -313,7 +313,7 @@ export function ApplicationDetail({ application }: ApplicationDetailProps) {
                           {message.sender?.first_name} {message.sender?.last_name}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {format(new Date(message.created_at), 'MMM d, h:mm a')}
+                          {format(new Date(message.createdAt), 'MMM d, h:mm a')}
                         </span>
                       </div>
                       <p className="text-sm">{message.content}</p>
@@ -443,7 +443,7 @@ export function ApplicationDetail({ application }: ApplicationDetailProps) {
                   <div>
                     <p className="font-medium">Application Submitted</p>
                     <p className="text-muted-foreground text-xs">
-                      {format(new Date(application.created_at), 'MMM d, yyyy h:mm a')}
+                      {format(new Date(application.createdAt), 'MMM d, yyyy h:mm a')}
                     </p>
                   </div>
                 </div>

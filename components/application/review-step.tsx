@@ -200,7 +200,7 @@ export function ReviewStep({ form, job }: ReviewStepProps) {
             <div>
               <h4 className="font-medium mb-2">Languages:</h4>
               <div className="flex flex-wrap gap-2">
-                {formData.languages.map((lang, index) => (
+                {formData.languages.map((lang: any, index: number) => (
                   <Badge key={index} variant="outline">
                     {lang.language} ({lang.proficiency})
                   </Badge>
@@ -216,7 +216,7 @@ export function ReviewStep({ form, job }: ReviewStepProps) {
                 Specialties:
               </h4>
               <div className="flex flex-wrap gap-2">
-                {formData.specialties.map((specialty, index) => (
+                {formData.specialties.map((specialty: any, index: number) => (
                   <Badge key={index} variant="secondary">
                     {specialty}
                   </Badge>

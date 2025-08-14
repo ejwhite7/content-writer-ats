@@ -88,7 +88,7 @@ export function ApplicationQuestionsStep({ form, job }: ApplicationQuestionsStep
   const addLanguage = (language: string, proficiency: string) => {
     if (language && proficiency) {
       const currentLanguages = form.getValues('languages') || []
-      const exists = currentLanguages.find(l => l.language === language)
+      const exists = currentLanguages.find((l: any) => l.language === language)
       
       if (!exists) {
         form.setValue('languages', [...currentLanguages, { language, proficiency }])
@@ -98,7 +98,7 @@ export function ApplicationQuestionsStep({ form, job }: ApplicationQuestionsStep
 
   const removeLanguage = (index: number) => {
     const currentLanguages = form.getValues('languages') || []
-    form.setValue('languages', currentLanguages.filter((_, i) => i !== index))
+    form.setValue('languages', currentLanguages.filter((_: any, i: number) => i !== index))
   }
 
   const addSpecialty = (specialty: string) => {
@@ -113,7 +113,7 @@ export function ApplicationQuestionsStep({ form, job }: ApplicationQuestionsStep
 
   const removeSpecialty = (specialty: string) => {
     const currentSpecialties = form.getValues('specialties') || []
-    form.setValue('specialties', currentSpecialties.filter(s => s !== specialty))
+    form.setValue('specialties', currentSpecialties.filter((s: any) => s !== specialty))
   }
 
   return (
@@ -299,7 +299,7 @@ export function ApplicationQuestionsStep({ form, job }: ApplicationQuestionsStep
               </SelectTrigger>
               <SelectContent>
                 {LANGUAGES.filter(
-                  lang => !languages.find(l => l.language === lang)
+                  lang => !languages.find((l: any) => l.language === lang)
                 ).map((lang) => (
                   <SelectItem key={lang} value={lang}>
                     {lang}
@@ -346,7 +346,7 @@ export function ApplicationQuestionsStep({ form, job }: ApplicationQuestionsStep
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Your Languages:</h4>
               <div className="flex flex-wrap gap-2">
-                {languages.map((lang, index) => (
+                {languages.map((lang: any, index: number) => (
                   <Badge
                     key={index}
                     variant="secondary"
@@ -437,7 +437,7 @@ export function ApplicationQuestionsStep({ form, job }: ApplicationQuestionsStep
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Selected specialties:</h4>
               <div className="flex flex-wrap gap-2">
-                {specialties.map((specialty) => (
+                {specialties.map((specialty: any) => (
                   <Badge
                     key={specialty}
                     variant="secondary"

@@ -108,13 +108,7 @@ export function JobDetail({
             <h1 className="text-3xl font-bold tracking-tight">{job.title}</h1>
             <div className="flex items-center gap-2 text-xl text-muted-foreground">
               <Building className="h-5 w-5" />
-              <span>{job.company}</span>
-              {job.department && (
-                <>
-                  <span>•</span>
-                  <span>{job.department}</span>
-                </>
-              )}
+              <span>{job.tenant?.name || 'Company'}</span>
             </div>
           </div>
 
@@ -122,24 +116,30 @@ export function JobDetail({
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />
-              <span>{job.location.city}, {job.location.state || job.location.country}</span>
+              <span>{job.location_city}, {job.location_country}</span>
             </div>
             
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <span>{getWorkModeIcon(job.workMode)}</span>
-              <span className="capitalize">{job.workMode}</span>
+              <span>{job.is_remote ? '🏡' : '🏢'}</span>
+              <span className="capitalize">{job.is_remote ? 'Remote' : 'On-site'}</span>
             </div>
 
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span className="capitalize">{job.workType.replace('-', ' ')}</span>
+              <span className="capitalize">{job.work_type?.replace('_', ' ')}</span>
             </div>
 
-            {job.salaryRange && (
+            {(job.compensation_min || job.compensation_max) && (
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <DollarSign className="h-4 w-4" />
                 <span>
-                  {formatCurrency(job.salaryRange.min, job.salaryRange.currency)} - {formatCurrency(job.salaryRange.max, job.salaryRange.currency)}
+                  {job.compensation_min && job.compensation_max 
+                    ? `$${job.compensation_min.toLocaleString()}-${job.compensation_max.toLocaleString()}` 
+                    : job.compensation_min 
+                    ? `From $${job.compensation_min.toLocaleString()}` 
+                    : `Up to $${job.compensation_max?.toLocaleString()}`
+                  }
+                  /{job.compensation_frequency || 'hour'}
                 </span>
               </div>
             )}
@@ -147,8 +147,8 @@ export function JobDetail({
 
           {/* Badges */}
           <div className="flex flex-wrap gap-2 pt-2">
-            <Badge variant={getExperienceLevelColor(job.experienceLevel) as any}>
-              {job.experienceLevel} Level
+            <Badge variant={getExperienceLevelColor(job.experience_level) as any}>
+              {job.experience_level} Level
             </Badge>
             <Badge variant="outline">
               {job.status}
@@ -196,20 +196,20 @@ export function JobDetail({
       <div className="flex gap-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-1">
           <Users className="h-4 w-4" />
-          <span>{job.applicationsCount} applicants</span>
+          <span>{job.applications_count} applicants</span>
         </div>
         <div className="flex items-center gap-1">
           <Eye className="h-4 w-4" />
-          <span>{job.viewsCount} views</span>
+          <span>{job.views_count} views</span>
         </div>
         <div className="flex items-center gap-1">
           <Calendar className="h-4 w-4" />
           <span>Posted {formatRelativeTime(job.createdAt)}</span>
         </div>
-        {job.applicationDeadline && (
+        {job.application_deadline && (
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
-            <span>Deadline: {formatDate(job.applicationDeadline)}</span>
+            <span>Deadline: {formatDate(job.application_deadline)}</span>
           </div>
         )}
       </div>
@@ -218,17 +218,6 @@ export function JobDetail({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Job Description */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Summary */}
-          {job.summary && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">{job.summary}</p>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Description */}
           <Card>
@@ -280,24 +269,6 @@ export function JobDetail({
             </Card>
           )}
 
-          {/* Benefits */}
-          {job.benefits && job.benefits.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Benefits & Perks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {job.benefits.map((benefit, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500" />
-                      <span className="text-muted-foreground text-sm">{benefit}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Sidebar */}
@@ -310,60 +281,27 @@ export function JobDetail({
             <CardContent className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Experience Level</dt>
-                <dd className="mt-1 text-sm capitalize">{job.experienceLevel}</dd>
+                <dd className="mt-1 text-sm capitalize">{job.experience_level}</dd>
               </div>
               
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Employment Type</dt>
-                <dd className="mt-1 text-sm capitalize">{job.workType.replace('-', ' ')}</dd>
+                <dd className="mt-1 text-sm capitalize">{job.work_type?.replace('_', ' ')}</dd>
               </div>
               
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Work Arrangement</dt>
-                <dd className="mt-1 text-sm capitalize">{job.workMode}</dd>
+                <dd className="mt-1 text-sm capitalize">{job.is_remote ? 'Remote' : 'On-site'}</dd>
               </div>
 
-              {job.educationRequired && (
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Education</dt>
-                  <dd className="mt-1 text-sm flex items-center gap-1">
-                    <GraduationCap className="h-4 w-4" />
-                    {job.educationRequired}
-                  </dd>
-                </div>
-              )}
-
-              {job.startDate && (
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Start Date</dt>
-                  <dd className="mt-1 text-sm">{formatDate(job.startDate)}</dd>
-                </div>
-              )}
             </CardContent>
           </Card>
 
-          {/* Skills Required */}
-          {job.skills && job.skills.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Skills Required</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {job.skills.map((skill) => (
-                    <Badge key={skill} variant="outline" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Company Info */}
           <Card>
             <CardHeader>
-              <CardTitle>About {job.company}</CardTitle>
+              <CardTitle>About {job.tenant?.name || 'Company'}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
@@ -382,7 +320,7 @@ export function JobDetail({
               <div className="text-center space-y-3">
                 <h3 className="font-semibold">Ready to Apply?</h3>
                 <p className="text-sm text-muted-foreground">
-                  Join {job.applicationsCount} other candidates who have applied for this position.
+                  Join {job.applications_count} other candidates who have applied for this position.
                 </p>
                 <Button 
                   onClick={handleApply} 

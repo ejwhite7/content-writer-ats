@@ -151,9 +151,9 @@ export function BrandingProvider({
         .eq('tenant_id', tenantId)
         .single()
 
-      if (supabaseError && supabaseError.code !== 'PGRST116') {
+      if (supabaseError && (supabaseError as any).code !== 'PGRST116') {
         console.error('Error fetching branding:', supabaseError)
-        setError(supabaseError.message || 'Failed to fetch branding settings')
+        setError((supabaseError as any).message || 'Failed to fetch branding settings')
         return
       }
 
@@ -193,7 +193,7 @@ export function BrandingProvider({
 
       if (updateError) {
         console.error('Error updating branding:', updateError)
-        setError(updateError.message || 'Failed to update branding settings')
+        setError((updateError as any).message || 'Failed to update branding settings')
         throw updateError
       }
 

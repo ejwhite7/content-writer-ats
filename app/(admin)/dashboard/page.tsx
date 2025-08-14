@@ -6,6 +6,8 @@ import { DashboardStats } from '@/components/admin/dashboard-stats'
 // import { AIScoringOverview } from '@/components/admin/ai-scoring-overview'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+export const dynamic = 'force-dynamic'
+
 // Type definitions for dashboard data
 interface DashboardStatsData {
   totalApplications: number

@@ -237,10 +237,56 @@ interface Database {
   }
 }
 
+// Mock client for development when env vars are not set
+const createMockClient = () => ({
+  from: () => ({
+    select: () => ({
+      eq: () => ({
+        single: () => Promise.resolve({ data: null, error: null }),
+        limit: () => Promise.resolve({ data: [], error: null }),
+        order: () => ({
+          limit: () => Promise.resolve({ data: [], error: null })
+        })
+      }),
+      single: () => Promise.resolve({ data: null, error: null }),
+      limit: () => Promise.resolve({ data: [], error: null }),
+      order: () => ({
+        limit: () => Promise.resolve({ data: [], error: null })
+      }),
+      gte: () => ({
+        single: () => Promise.resolve({ data: null, error: null })
+      }),
+      not: () => ({
+        limit: () => Promise.resolve({ data: [], error: null })
+      })
+    }),
+    insert: () => ({
+      select: () => ({
+        single: () => Promise.resolve({ data: null, error: null })
+      })
+    }),
+    update: () => ({
+      eq: () => ({
+        select: () => ({
+          single: () => Promise.resolve({ data: null, error: null })
+        })
+      })
+    })
+  })
+}) as any
+
 export function createClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('Supabase environment variables not configured. Using mock client.')
+    return createMockClient()
+  }
+  
   return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       auth: {
         persistSession: false
@@ -251,9 +297,17 @@ export function createClient() {
 
 // For admin operations that bypass RLS
 export function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.warn('Supabase admin environment variables not configured. Using mock client.')
+    return createMockClient()
+  }
+  
   return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    supabaseUrl,
+    serviceRoleKey,
     {
       auth: {
         persistSession: false

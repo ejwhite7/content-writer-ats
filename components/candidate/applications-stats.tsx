@@ -47,16 +47,16 @@ export function ApplicationsStats() {
 
       // Calculate stats
       const total = applications.length
-      const pending = applications.filter(app => 
+      const pending = applications.filter((app: any) => 
         ['applied', 'assessment_submitted', 'ai_reviewed', 'manual_review'].includes(app.status)
       ).length
-      const shortlisted = applications.filter(app => 
+      const shortlisted = applications.filter((app: any) => 
         ['shortlisted', 'paid_assignment', 'live_assignment'].includes(app.status)
       ).length
-      const rejected = applications.filter(app => 
+      const rejected = applications.filter((app: any) => 
         ['rejected', 'terminated'].includes(app.status)
       ).length
-      const hired = applications.filter(app => app.status === 'hired').length
+      const hired = applications.filter((app: any) => app.status === 'hired').length
       const recentActivity = applications.slice(0, 5)
 
       setStats({

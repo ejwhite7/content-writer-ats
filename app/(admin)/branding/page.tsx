@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { BrandingSettings } from '@/components/admin/branding-settings'
 import type { BrandingSettings as BrandingSettingsType } from '@/lib/branding/branding-provider'
 
+export const dynamic = 'force-dynamic'
+
 interface TenantData {
   id: string
   name: string

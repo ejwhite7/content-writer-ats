@@ -13,10 +13,10 @@ interface JobCardProps {
 export function JobCard({ job }: JobCardProps) {
   const formatCompensation = () => {
     if (job.compensation_min && job.compensation_max) {
-      return `$${job.compensation_min}-${job.compensation_max}/${job.compensation_type || 'hour'}`
+      return `$${job.compensation_min}-${job.compensation_max}/${job.compensation_frequency || 'hour'}`
     }
     if (job.compensation_min) {
-      return `From $${job.compensation_min}/${job.compensation_type || 'hour'}`
+      return `From $${job.compensation_min}/${job.compensation_frequency || 'hour'}`
     }
     return 'Compensation negotiable'
   }
@@ -31,11 +31,11 @@ export function JobCard({ job }: JobCardProps) {
             </h3>
             <div className="flex items-center text-sm text-muted-foreground">
               <Building className="h-4 w-4 mr-1" />
-              {job.tenants?.name || 'Company'}
+              {job.tenant?.name || 'Company'}
             </div>
           </div>
           <Badge variant="secondary" className="ml-2">
-            {job.job_type || 'Full-time'}
+            {job.work_type || 'Full-time'}
           </Badge>
         </div>
       </CardHeader>
@@ -49,8 +49,8 @@ export function JobCard({ job }: JobCardProps) {
           <div className="flex items-center text-sm text-muted-foreground">
             <MapPin className="h-4 w-4 mr-2" />
             <span>
-              {job.location || 'Remote'}
-              {job.remote_allowed && job.location && ' (Remote OK)'}
+              {job.location_city ? `${job.location_city}, ${job.location_country || 'Unknown'}` : (job.is_remote ? 'Remote' : 'Location TBD')}
+              {job.is_remote && job.location_city && ' (Remote OK)'}
             </span>
           </div>
           
@@ -62,7 +62,7 @@ export function JobCard({ job }: JobCardProps) {
           <div className="flex items-center text-sm text-muted-foreground">
             <Clock className="h-4 w-4 mr-2" />
             <span>
-              Posted {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+              Posted {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
             </span>
           </div>
         </div>

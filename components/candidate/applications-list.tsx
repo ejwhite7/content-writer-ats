@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Application } from '@/types/database'
 
-interface ApplicationWithJob extends Application {
+interface ApplicationWithJob extends Omit<Application, 'job'> {
   job?: {
     id: string
     title: string
@@ -188,7 +188,7 @@ export function ApplicationsList() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>Applied {format(new Date(application.created_at), 'MMM d, yyyy')}</span>
+                  <span>Applied {format(new Date(application.createdAt), 'MMM d, yyyy')}</span>
                 </div>
                 
                 {application.location_city && application.location_country && (
@@ -220,8 +220,8 @@ export function ApplicationsList() {
               {/* Actions */}
               <div className="flex justify-between items-center pt-2 border-t">
                 <div className="text-xs text-muted-foreground">
-                  {application.updated_at !== application.created_at && (
-                    <span>Updated {format(new Date(application.updated_at), 'MMM d, yyyy')}</span>
+                  {application.updatedAt !== application.createdAt && (
+                    <span>Updated {format(new Date(application.updatedAt), 'MMM d, yyyy')}</span>
                   )}
                 </div>
                 <Button

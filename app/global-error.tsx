@@ -1,9 +1,10 @@
 'use client'
 
-import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import * as Sentry from "@sentry/nextjs";
+import Error from "next/error";
 
 export default function GlobalError({
   error,
@@ -13,19 +14,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to Sentry
-    const errorId = Sentry.captureException(error, {
-      tags: {
-        component: 'global_error_boundary'
-      },
-      contexts: {
-        error: {
-          digest: error.digest
-        }
-      }
-    })
-    
-    console.error('Global error captured:', error, 'Sentry ID:', errorId)
+    Sentry.captureException(error);
   }, [error])
 
   return (
@@ -52,7 +41,7 @@ export default function GlobalError({
                   Error Details (Development)
                 </summary>
                 <pre className="mt-2 p-3 bg-gray-100 rounded text-xs overflow-auto max-h-40">
-                  {error.stack}
+                  {(error as any)?.stack || error.toString()}
                 </pre>
                 {error.digest && (
                   <p className="text-xs text-gray-400 mt-2">

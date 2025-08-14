@@ -223,7 +223,7 @@ export function AssessmentForm({
             
             <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
               <div>
-                Word count: {content.split(/\s+/).filter(word => word.length > 0).length}
+                Word count: {content.split(/\s+/).filter((word: string) => word.length > 0).length}
               </div>
               <div>
                 Character count: {content.length}

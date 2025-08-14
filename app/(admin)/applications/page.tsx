@@ -4,6 +4,8 @@ import { ApplicationsTable } from '@/components/admin/applications-table'
 import { ApplicationsFilters } from '@/components/admin/applications-filters'
 import type { Application } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 // Next.js 13+ App Router page props interface
 interface ApplicationsPageProps {
   searchParams: Promise<{

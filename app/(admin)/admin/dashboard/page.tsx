@@ -7,6 +7,8 @@ import { RecentActivity } from '@/components/admin/recent-activity'
 import { requireAdmin } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Admin Dashboard',
   description: 'Overview of your ATS platform metrics, recent activities, and key insights.',

@@ -30,19 +30,13 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   NEXT_PUBLIC_RESEND_FROM_EMAIL: z.string().email().optional(),
 
-  // Redis Configuration
-  REDIS_URL: z.string().url().optional(),
-  REDIS_HOST: z.string().optional(),
-  REDIS_PORT: z.string().optional(),
-  REDIS_PASSWORD: z.string().optional(),
+  // Removed Redis Configuration - no longer needed
 
   // File Upload Configuration
   NEXT_PUBLIC_MAX_FILE_SIZE: z.string().default('10485760'), // 10MB
   NEXT_PUBLIC_ALLOWED_FILE_TYPES: z.string().default('pdf,doc,docx'),
 
-  // Monitoring Configuration
-  SENTRY_DSN: z.string().url().optional(),
-  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  // Removed Sentry Configuration - monitoring simplified
 
   // Feature Flags
   NEXT_PUBLIC_ENABLE_AI_SCREENING: z.string().default('true'),
@@ -138,21 +132,7 @@ export const emailConfig = {
   },
 } as const
 
-// Redis Configuration
-export const redisConfig = {
-  url: env.REDIS_URL,
-  host: env.REDIS_HOST,
-  port: env.REDIS_PORT ? parseInt(env.REDIS_PORT) : undefined,
-  password: env.REDIS_PASSWORD,
-} as const
-
-// Monitoring Configuration
-export const monitoringConfig = {
-  sentry: {
-    dsn: env.SENTRY_DSN,
-    publicDsn: env.NEXT_PUBLIC_SENTRY_DSN,
-  },
-} as const
+// Removed Redis and Monitoring configurations - simplified architecture
 
 // Navigation Configuration
 export const navigationConfig = {
