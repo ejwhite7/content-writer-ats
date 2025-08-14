@@ -1,4 +1,8 @@
-import { JobStatus, ApplicationStatus, UserRole, NotificationType } from '@/lib/config'
+// Define enum types that were missing
+export type JobStatus = 'draft' | 'published' | 'closed' | 'archived'
+export type ApplicationStatus = 'applied' | 'assessment_submitted' | 'ai_reviewed' | 'shortlisted' | 'manual_review' | 'paid_assignment' | 'live_assignment' | 'hired' | 'rejected' | 'terminated'
+export type UserRole = 'admin' | 'candidate'
+export type NotificationType = 'application_received' | 'assessment_invitation' | 'status_update' | 'message_received' | 'system_notification'
 
 // Base types
 export interface BaseEntity {
@@ -330,10 +334,4 @@ export interface TableProps<T = any> {
   }[]
 }
 
-// Export types for external use
-export type {
-  JobStatus,
-  ApplicationStatus,
-  UserRole,
-  NotificationType,
-}
+// Types are already exported above

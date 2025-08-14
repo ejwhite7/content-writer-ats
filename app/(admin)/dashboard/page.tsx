@@ -1,5 +1,207 @@
 import { requireAdmin } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardStats } from '@/components/admin/dashboard-stats'
-import { RecentApplications } from '@/components/admin/recent-applications'
-import { ActiveJobs } from '@/components/admin/active-jobs'\nimport { AIScoring Overview } from '@/components/admin/ai-scoring-overview'\n\nexport default async function AdminDashboardPage() {\n  const user = await requireAdmin()\n  const supabase = createClient()\n\n  // Fetch dashboard data\n  const [statsData, recentApplicationsData, activeJobsData, aiScoringData] = await Promise.all([\n    fetchDashboardStats(supabase, user.tenant_id),\n    fetchRecentApplications(supabase, user.tenant_id),\n    fetchActiveJobs(supabase, user.tenant_id),\n    fetchAIScoringOverview(supabase, user.tenant_id)\n  ])\n\n  return (\n    <div className=\"space-y-6\">\n      <div>\n        <h1 className=\"text-3xl font-bold tracking-tight\">Dashboard</h1>\n        <p className=\"text-muted-foreground\">\n          Overview of your hiring pipeline and candidate activity\n        </p>\n      </div>\n\n      <DashboardStats data={statsData} />\n      \n      <div className=\"grid gap-6 lg:grid-cols-2\">\n        <RecentApplications applications={recentApplicationsData} />\n        <ActiveJobs jobs={activeJobsData} />\n      </div>\n      \n      <AIScoring Overview data={aiScoringData} />\n    </div>\n  )\n}\n\nasync function fetchDashboardStats(supabase: any, tenantId: string) {\n  const [applications, shortlisted, hired, avgTimeToHire] = await Promise.all([\n    // Total applications this month\n    supabase\n      .from('applications')\n      .select('id', { count: 'exact' })\n      .eq('tenant_id', tenantId)\n      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),\n    \n    // Shortlisted candidates\n    supabase\n      .from('applications')\n      .select('id', { count: 'exact' })\n      .eq('tenant_id', tenantId)\n      .eq('stage', 'shortlisted'),\n    \n    // Hired this month\n    supabase\n      .from('applications')\n      .select('id', { count: 'exact' })\n      .eq('tenant_id', tenantId)\n      .eq('stage', 'hired')\n      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),\n    \n    // Average time to hire (simplified)\n    supabase\n      .from('applications')\n      .select('created_at, hired_at')\n      .eq('tenant_id', tenantId)\n      .eq('stage', 'hired')\n      .not('hired_at', 'is', null)\n      .limit(50)\n  ])\n\n  let avgDays = 0\n  if (avgTimeToHire.data && avgTimeToHire.data.length > 0) {\n    const times = avgTimeToHire.data.map(app => {\n      const created = new Date(app.created_at)\n      const hired = new Date(app.hired_at)\n      return (hired.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)\n    })\n    avgDays = times.reduce((a, b) => a + b, 0) / times.length\n  }\n\n  return {\n    totalApplications: applications.count || 0,\n    shortlistedCandidates: shortlisted.count || 0,\n    hiredThisMonth: hired.count || 0,\n    avgTimeToHire: Math.round(avgDays)\n  }\n}\n\nasync function fetchRecentApplications(supabase: any, tenantId: string) {\n  const { data } = await supabase\n    .from('applications')\n    .select(`\n      *,\n      jobs (title),\n      users (first_name, last_name, email),\n      assessments (ai_total_score, status)\n    `)\n    .eq('tenant_id', tenantId)\n    .order('created_at', { ascending: false })\n    .limit(5)\n\n  return data || []\n}\n\nasync function fetchActiveJobs(supabase: any, tenantId: string) {\n  const { data } = await supabase\n    .from('jobs')\n    .select(`\n      *,\n      applications (id)\n    `)\n    .eq('tenant_id', tenantId)\n    .eq('status', 'published')\n    .order('created_at', { ascending: false })\n    .limit(5)\n\n  return data || []\n}\n\nasync function fetchAIScoringOverview(supabase: any, tenantId: string) {\n  const { data } = await supabase\n    .from('assessments')\n    .select('ai_total_score, ai_scores')\n    .eq('tenant_id', tenantId)\n    .eq('status', 'ai_scored')\n    .order('created_at', { ascending: false })\n    .limit(100)\n\n  const scores = data?.filter(a => a.ai_total_score).map(a => a.ai_total_score) || []\n  const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0\n  \n  const highScores = scores.filter(s => s >= 80).length\n  const mediumScores = scores.filter(s => s >= 60 && s < 80).length\n  const lowScores = scores.filter(s => s < 60).length\n\n  return {\n    totalAssessed: scores.length,\n    averageScore: Math.round(avgScore),\n    distribution: {\n      high: highScores,\n      medium: mediumScores,\n      low: lowScores\n    }\n  }\n}"
+// import { RecentApplications } from '@/components/admin/recent-applications'
+// import { ActiveJobs } from '@/components/admin/active-jobs'
+// import { AIScoringOverview } from '@/components/admin/ai-scoring-overview'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+// Type definitions for dashboard data
+interface DashboardStatsData {
+  totalApplications: number
+  shortlistedCandidates: number
+  hiredThisMonth: number
+  avgTimeToHire: number
+}
+
+interface ApplicationWithJoinedData {
+  id: string
+  created_at: string
+  stage: string
+  tenant_id: string
+  jobs: {
+    title: string
+  }
+  users: {
+    first_name: string
+    last_name: string
+    email: string
+  }
+  assessments: {
+    ai_total_score: number
+    status: string
+  }[]
+}
+
+interface JobWithApplicationCount {
+  id: string
+  title: string
+  created_at: string
+  status: string
+  tenant_id: string
+  applications: {
+    id: string
+  }[]
+}
+
+interface AssessmentData {
+  ai_total_score: number
+  ai_scores: Record<string, any>
+  created_at: string
+  status: string
+}
+
+interface AIScoringData {
+  totalAssessed: number
+  averageScore: number
+  distribution: {
+    high: number
+    medium: number
+    low: number
+  }
+}
+
+export default async function AdminDashboardPage() {
+  const user = await requireAdmin()
+  const supabase = createClient()
+
+  // Fetch dashboard data
+  const [statsData] = await Promise.all([
+    fetchDashboardStats(supabase, user.tenant_id),
+    // fetchRecentApplications(supabase, user.tenant_id),
+    // fetchActiveJobs(supabase, user.tenant_id),
+    // fetchAIScoringOverview(supabase, user.tenant_id)
+  ])
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Overview of your hiring pipeline and candidate activity
+        </p>
+      </div>
+
+      <DashboardStats data={statsData} />
+      
+      {/* TODO: Add missing components */}
+      {/* <div className="grid gap-6 lg:grid-cols-2">
+        <RecentApplications applications={recentApplicationsData} />
+        <ActiveJobs jobs={activeJobsData} />
+      </div>
+      
+      <AIScoringOverview data={aiScoringData} /> */}
+    </div>
+  )
+}
+
+async function fetchDashboardStats(supabase: SupabaseClient, tenantId: string): Promise<DashboardStatsData> {
+  const [applications, shortlisted, hired, avgTimeToHire] = await Promise.all([
+    // Total applications this month
+    supabase
+      .from('applications')
+      .select('id', { count: 'exact' })
+      .eq('tenant_id', tenantId)
+      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+    
+    // Shortlisted candidates
+    supabase
+      .from('applications')
+      .select('id', { count: 'exact' })
+      .eq('tenant_id', tenantId)
+      .eq('stage', 'shortlisted'),
+    
+    // Hired this month
+    supabase
+      .from('applications')
+      .select('id', { count: 'exact' })
+      .eq('tenant_id', tenantId)
+      .eq('stage', 'hired')
+      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+    
+    // Average time to hire (simplified)
+    supabase
+      .from('applications')
+      .select('created_at, hired_at')
+      .eq('tenant_id', tenantId)
+      .eq('stage', 'hired')
+      .not('hired_at', 'is', null)
+      .limit(50)
+  ])
+
+  let avgDays = 0
+  if (avgTimeToHire.data && avgTimeToHire.data.length > 0) {
+    const times = avgTimeToHire.data.map(app => {
+      const created = new Date(app.created_at)
+      const hired = new Date(app.hired_at!)
+      return (hired.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)
+    })
+    avgDays = times.reduce((a, b) => a + b, 0) / times.length
+  }
+
+  return {
+    totalApplications: applications.count || 0,
+    shortlistedCandidates: shortlisted.count || 0,
+    hiredThisMonth: hired.count || 0,
+    avgTimeToHire: Math.round(avgDays)
+  }
+}
+
+async function fetchRecentApplications(supabase: SupabaseClient, tenantId: string): Promise<ApplicationWithJoinedData[]> {
+  const { data } = await supabase
+    .from('applications')
+    .select(`
+      *,
+      jobs (title),
+      users (first_name, last_name, email),
+      assessments (ai_total_score, status)
+    `)
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  return (data as ApplicationWithJoinedData[]) || []
+}
+
+async function fetchActiveJobs(supabase: SupabaseClient, tenantId: string): Promise<JobWithApplicationCount[]> {
+  const { data } = await supabase
+    .from('jobs')
+    .select(`
+      *,
+      applications (id)
+    `)
+    .eq('tenant_id', tenantId)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  return (data as JobWithApplicationCount[]) || []
+}
+
+async function fetchAIScoringOverview(supabase: SupabaseClient, tenantId: string): Promise<AIScoringData> {
+  const { data } = await supabase
+    .from('assessments')
+    .select('ai_total_score, ai_scores')
+    .eq('tenant_id', tenantId)
+    .eq('status', 'ai_scored')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  const assessmentData = (data as AssessmentData[]) || []
+  const scores = assessmentData.filter(a => a.ai_total_score).map(a => a.ai_total_score) || []
+  const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
+  
+  const highScores = scores.filter(s => s >= 80).length
+  const mediumScores = scores.filter(s => s >= 60 && s < 80).length
+  const lowScores = scores.filter(s => s < 60).length
+
+  return {
+    totalAssessed: scores.length,
+    averageScore: Math.round(avgScore),
+    distribution: {
+      high: highScores,
+      medium: mediumScores,
+      low: lowScores
+    }
+  }
+}

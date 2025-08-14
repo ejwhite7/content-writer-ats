@@ -1,1 +1,240 @@
-'use client'\n\nimport { useState, useEffect, useRef } from 'react'\nimport { useUser } from '@clerk/nextjs'\nimport { formatDistanceToNow } from 'date-fns'\nimport { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'\nimport { Button } from '@/components/ui/button'\nimport { Textarea } from '@/components/ui/textarea'\nimport { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar'\nimport { ScrollArea } from '@/components/ui/scroll-area'\nimport { Send, Loader2 } from 'lucide-react'\nimport { useToast } from '@/components/ui/use-toast'\n\ninterface Message {\n  id: string\n  content: string\n  sender_id: string\n  created_at: string\n  read_at?: string\n  users: {\n    first_name: string\n    last_name: string\n    email: string\n  }\n}\n\ninterface MessageThreadProps {\n  applicationId: string\n  initialMessages?: Message[]\n}\n\nexport function MessageThread({ applicationId, initialMessages = [] }: MessageThreadProps) {\n  const { user } = useUser()\n  const { toast } = useToast()\n  const [messages, setMessages] = useState<Message[]>(initialMessages)\n  const [newMessage, setNewMessage] = useState('')\n  const [sending, setSending] = useState(false)\n  const [loading, setLoading] = useState(false)\n  const scrollAreaRef = useRef<HTMLDivElement>(null)\n  const messagesEndRef = useRef<HTMLDivElement>(null)\n\n  // Scroll to bottom when new messages arrive\n  useEffect(() => {\n    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })\n  }, [messages])\n\n  // Fetch messages on mount\n  useEffect(() => {\n    if (initialMessages.length === 0) {\n      fetchMessages()\n    }\n  }, [applicationId])\n\n  const fetchMessages = async () => {\n    setLoading(true)\n    try {\n      const response = await fetch(`/api/messages?application_id=${applicationId}`)\n      const data = await response.json()\n      \n      if (response.ok) {\n        setMessages(data.messages)\n      } else {\n        toast({\n          title: 'Error',\n          description: data.error || 'Failed to fetch messages',\n          variant: 'destructive'\n        })\n      }\n    } catch (error) {\n      toast({\n        title: 'Error',\n        description: 'Failed to fetch messages',\n        variant: 'destructive'\n      })\n    } finally {\n      setLoading(false)\n    }\n  }\n\n  const sendMessage = async () => {\n    if (!newMessage.trim() || sending || !user) return\n\n    setSending(true)\n    try {\n      const response = await fetch('/api/messages', {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n        },\n        body: JSON.stringify({\n          application_id: applicationId,\n          content: newMessage.trim()\n        })\n      })\n\n      const data = await response.json()\n      \n      if (response.ok) {\n        setMessages(prev => [...prev, data.message])\n        setNewMessage('')\n      } else {\n        toast({\n          title: 'Error',\n          description: data.error || 'Failed to send message',\n          variant: 'destructive'\n        })\n      }\n    } catch (error) {\n      toast({\n        title: 'Error',\n        description: 'Failed to send message',\n        variant: 'destructive'\n      })\n    } finally {\n      setSending(false)\n    }\n  }\n\n  const handleKeyPress = (e: React.KeyboardEvent) => {\n    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {\n      e.preventDefault()\n      sendMessage()\n    }\n  }\n\n  const getInitials = (firstName: string, lastName: string) => {\n    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()\n  }\n\n  if (loading) {\n    return (\n      <Card>\n        <CardContent className=\"flex items-center justify-center h-64\">\n          <Loader2 className=\"h-6 w-6 animate-spin\" />\n        </CardContent>\n      </Card>\n    )\n  }\n\n  return (\n    <Card className=\"flex flex-col h-[600px]\">\n      <CardHeader>\n        <CardTitle>Messages</CardTitle>\n      </CardHeader>\n      \n      <CardContent className=\"flex flex-col flex-1 p-0\">\n        {/* Messages */}\n        <ScrollArea className=\"flex-1 p-4\" ref={scrollAreaRef}>\n          <div className=\"space-y-4\">\n            {messages.length === 0 ? (\n              <div className=\"text-center text-muted-foreground py-8\">\n                <p>No messages yet.</p>\n                <p className=\"text-sm\">Start a conversation below.</p>\n              </div>\n            ) : (\n              messages.map((message) => {\n                const isOwn = message.sender_id === user?.id\n                return (\n                  <div\n                    key={message.id}\n                    className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}\n                  >\n                    <Avatar className=\"h-8 w-8\">\n                      <AvatarFallback>\n                        {getInitials(message.users.first_name, message.users.last_name)}\n                      </AvatarFallback>\n                    </Avatar>\n                    \n                    <div className={`flex flex-col gap-1 max-w-[70%] ${\n                      isOwn ? 'items-end' : 'items-start'\n                    }`}>\n                      <div className=\"flex items-center gap-2 text-xs text-muted-foreground\">\n                        <span>\n                          {message.users.first_name} {message.users.last_name}\n                        </span>\n                        <span>•</span>\n                        <span>\n                          {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}\n                        </span>\n                      </div>\n                      \n                      <div className={`rounded-lg px-3 py-2 text-sm ${\n                        isOwn \n                          ? 'bg-primary text-primary-foreground' \n                          : 'bg-muted'\n                      }`}>\n                        {message.content}\n                      </div>\n                    </div>\n                  </div>\n                )\n              })\n            )}\n            <div ref={messagesEndRef} />\n          </div>\n        </ScrollArea>\n        \n        {/* Message Input */}\n        <div className=\"border-t p-4\">\n          <div className=\"flex gap-2\">\n            <Textarea\n              value={newMessage}\n              onChange={(e) => setNewMessage(e.target.value)}\n              onKeyDown={handleKeyPress}\n              placeholder=\"Type a message... (Ctrl+Enter to send)\"\n              className=\"flex-1 min-h-[80px] resize-none\"\n              disabled={sending}\n            />\n            <Button \n              onClick={sendMessage}\n              disabled={!newMessage.trim() || sending}\n              size=\"sm\"\n              className=\"self-end\"\n            >\n              {sending ? (\n                <Loader2 className=\"h-4 w-4 animate-spin\" />\n              ) : (\n                <Send className=\"h-4 w-4\" />\n              )}\n            </Button>\n          </div>\n          <p className=\"text-xs text-muted-foreground mt-2\">\n            Press Ctrl+Enter to send\n          </p>\n        </div>\n      </CardContent>\n    </Card>\n  )\n}"
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { useUser } from '@clerk/nextjs'
+import { formatDistanceToNow } from 'date-fns'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Send, Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
+
+// Interface for message structure based on application messaging
+interface ThreadMessage {
+  id: string
+  content: string
+  sender_id: string
+  created_at: string
+  read_at?: string
+  users: {
+    first_name: string
+    last_name: string
+    email: string
+  }
+}
+
+interface MessageThreadProps {
+  applicationId: string
+  initialMessages?: ThreadMessage[]
+}
+
+// API response interface
+interface ApiResponse {
+  success?: boolean
+  messages?: ThreadMessage[]
+  message?: ThreadMessage
+  error?: string
+}
+
+export function MessageThread({ applicationId, initialMessages = [] }: MessageThreadProps) {
+  const { user } = useUser()
+  const { toast } = useToast()
+  const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages)
+  const [newMessage, setNewMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // Fetch messages on mount
+  useEffect(() => {
+    if (initialMessages.length === 0) {
+      fetchMessages()
+    }
+  }, [applicationId, initialMessages.length])
+
+  const fetchMessages = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/messages?application_id=${applicationId}`)
+      const data: ApiResponse = await response.json()
+      
+      if (response.ok && data.messages) {
+        setMessages(data.messages)
+      } else {
+        toast({
+          title: 'Error',
+          description: data.error || 'Failed to fetch messages',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch messages:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch messages',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || sending || !user) return
+
+    setSending(true)
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          application_id: applicationId,
+          content: newMessage.trim()
+        })
+      })
+
+      const data: ApiResponse = await response.json()
+      
+      if (response.ok && data.message) {
+        setMessages(prev => [...prev, data.message!])
+        setNewMessage('')
+      } else {
+        toast({
+          title: 'Error',
+          description: data.error || 'Failed to send message',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to send message',
+        variant: 'destructive'
+      })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  const getInitials = (firstName: string, lastName: string): string => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-64">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="flex flex-col h-[600px]">
+      <CardHeader>
+        <CardTitle>Messages</CardTitle>
+      </CardHeader>
+      
+      <CardContent className="flex flex-col flex-1 p-0">
+        {/* Messages */}
+        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+          <div className="space-y-4">
+            {messages.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <p>No messages yet.</p>
+                <p className="text-sm">Start a conversation below.</p>
+              </div>
+            ) : (
+              messages.map((message) => {
+                const isOwn = message.sender_id === user?.id
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {getInitials(message.users.first_name, message.users.last_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className={`flex flex-col gap-1 max-w-[70%] ${
+                      isOwn ? 'items-end' : 'items-start'
+                    }`}>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>
+                          {message.users.first_name} {message.users.last_name}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      
+                      <div className={`rounded-lg px-3 py-2 text-sm ${
+                        isOwn 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted'
+                      }`}>
+                        {message.content}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+        
+        {/* Message Input */}
+        <div className="border-t p-4">
+          <div className="flex gap-2">
+            <Textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Type a message... (Ctrl+Enter to send)"
+              className="flex-1 min-h-[80px] resize-none"
+              disabled={sending}
+            />
+            <Button 
+              onClick={sendMessage}
+              disabled={!newMessage.trim() || sending}
+              size="sm"
+              className="self-end"
+            >
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Press Ctrl+Enter to send
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

@@ -71,7 +71,7 @@ export function SuccessStep({ applicationId, job }: SuccessStepProps) {
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">Company</h4>
-              <p className="font-semibold">{job.tenants?.name}</p>
+              <p className="font-semibold">{job.tenant?.name}</p>
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">Application ID</h4>

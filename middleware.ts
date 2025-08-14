@@ -1,36 +1,30 @@
-import { authMiddleware } from '@clerk/nextjs'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export default authMiddleware({
-  // Routes that can be accessed while signed out
-  publicRoutes: [
-    '/',
-    '/jobs',
-    '/jobs/(.*)',
-    '/api/webhooks/(.*)',
-    '/api/public/(.*)',
-    '/_vercel',
-    '/favicon.ico',
-  ],
-  // Routes that can always be accessed, and have protection if user is signed in
-  ignoredRoutes: [
-    '/_next/(.*)',
-    '/api/public/(.*)',
-    '/api/webhooks/(.*)',
-    '/_vercel',
-    '/favicon.ico',
-  ],
-  // Define organization-based routes if needed
-  // organizationRoles: ['admin', 'member'],
-  // Allow users to visit organization selection page
-  // organizationSelection: {
-  //   url: '/organization-selection'
-  // },
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/jobs',
+  '/jobs/(.*)',
+  '/api/webhooks/(.*)',
+  '/api/public/(.*)',
+  '/_vercel',
+  '/favicon.ico',
+  '/_next/(.*)',
+])
+
+export default clerkMiddleware((auth, req: NextRequest) => {
+  // Handle public routes
+  if (isPublicRoute(req)) {
+    return NextResponse.next()
+  }
+  
+  // Protect all other routes
+  const authData = auth()
   
   // Custom redirect logic
-  afterAuth(auth, req: NextRequest) {
-    const { userId, orgRole, orgId } = auth
+  function handleAuth() {
+    const { userId, sessionClaims } = authData
     const { pathname } = req.nextUrl
     
     // Handle root redirect based on user role
@@ -38,7 +32,7 @@ export default authMiddleware({
       const url = req.nextUrl.clone()
       
       // Check if user has admin role (stored in Clerk metadata)
-      if (auth.sessionClaims?.metadata?.role === 'admin') {
+      if ((sessionClaims?.metadata as any)?.role === 'admin') {
         url.pathname = '/admin'
         return NextResponse.redirect(url)
       } else {
@@ -55,7 +49,7 @@ export default authMiddleware({
         return NextResponse.redirect(url)
       }
       
-      if (auth.sessionClaims?.metadata?.role !== 'admin') {
+      if ((sessionClaims?.metadata as any)?.role !== 'admin') {
         const url = req.nextUrl.clone()
         url.pathname = '/candidate'
         return NextResponse.redirect(url)
@@ -73,7 +67,9 @@ export default authMiddleware({
     
     // Allow public routes and API routes
     return NextResponse.next()
-  },
+  }
+  
+  return handleAuth()
 })
 
 export const config = {

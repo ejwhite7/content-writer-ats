@@ -91,11 +91,10 @@ export function startTransaction(
   op: string = 'http.server',
   data?: Record<string, any>
 ) {
-  return Sentry.startTransaction({
+  return Sentry.startSpan({
     name,
-    op,
-    data
-  })
+    op
+  }, () => {})
 }
 
 // Measure function performance
@@ -104,21 +103,17 @@ export async function measurePerformance<T>(
   fn: () => Promise<T>,
   op: string = 'function'
 ): Promise<T> {
-  const transaction = Sentry.startTransaction({
+  return await Sentry.startSpan({
     name,
     op
+  }, async () => {
+    try {
+      return await fn()
+    } catch (error) {
+      Sentry.captureException(error)
+      throw error
+    }
   })
-  
-  try {
-    const result = await fn()
-    transaction.setStatus('ok')
-    return result
-  } catch (error) {
-    transaction.setStatus('internal_error')
-    throw error
-  } finally {
-    transaction.finish()
-  }
 }
 
 // Application-specific error handlers

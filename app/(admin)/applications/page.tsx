@@ -1,1 +1,125 @@
-import { requireAdmin } from '@/lib/auth'\nimport { createClient } from '@/lib/supabase/server'\nimport { ApplicationsTable } from '@/components/admin/applications-table'\nimport { ApplicationsFilters } from '@/components/admin/applications-filters'\n\ninterface ApplicationsPageProps {\n  searchParams: {\n    stage?: string\n    job?: string\n    search?: string\n    page?: string\n    sort?: string\n  }\n}\n\nexport default async function ApplicationsPage({ searchParams }: ApplicationsPageProps) {\n  const user = await requireAdmin()\n  const supabase = createClient()\n\n  // Build query based on search params\n  let query = supabase\n    .from('applications')\n    .select(`\n      *,\n      jobs (id, title),\n      users (first_name, last_name, email),\n      assessments (ai_total_score, status, created_at)\n    `, { count: 'exact' })\n    .eq('tenant_id', user.tenant_id)\n\n  // Apply filters\n  if (searchParams.stage) {\n    query = query.eq('stage', searchParams.stage)\n  }\n  if (searchParams.job) {\n    query = query.eq('job_id', searchParams.job)\n  }\n  if (searchParams.search) {\n    query = query.or(\n      `first_name.ilike.%${searchParams.search}%,last_name.ilike.%${searchParams.search}%,email.ilike.%${searchParams.search}%`\n    )\n  }\n\n  // Apply sorting\n  const sort = searchParams.sort || 'created_at.desc'\n  const [sortField, sortOrder] = sort.split('.')\n  query = query.order(sortField, { ascending: sortOrder === 'asc' })\n\n  // Apply pagination\n  const page = parseInt(searchParams.page || '1')\n  const limit = 20\n  const start = (page - 1) * limit\n  const end = start + limit - 1\n  query = query.range(start, end)\n\n  const { data: applications, error, count } = await query\n\n  if (error) {\n    console.error('Error fetching applications:', error)\n  }\n\n  // Fetch jobs for filter dropdown\n  const { data: jobs } = await supabase\n    .from('jobs')\n    .select('id, title')\n    .eq('tenant_id', user.tenant_id)\n    .eq('status', 'published')\n    .order('title')\n\n  const totalPages = Math.ceil((count || 0) / limit)\n\n  return (\n    <div className=\"space-y-6\">\n      <div className=\"flex items-center justify-between\">\n        <div>\n          <h1 className=\"text-3xl font-bold tracking-tight\">Applications</h1>\n          <p className=\"text-muted-foreground\">\n            Manage and review candidate applications\n          </p>\n        </div>\n      </div>\n\n      <ApplicationsFilters \n        jobs={jobs || []}\n        currentFilters={searchParams}\n      />\n\n      <ApplicationsTable \n        applications={applications || []}\n        totalCount={count || 0}\n        currentPage={page}\n        totalPages={totalPages}\n        currentSort={sort}\n      />\n    </div>\n  )\n}"
+import { requireAdmin } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
+import { ApplicationsTable } from '@/components/admin/applications-table'
+import { ApplicationsFilters } from '@/components/admin/applications-filters'
+import type { Application } from '@/types/database'
+
+// Next.js 13+ App Router page props interface
+interface ApplicationsPageProps {
+  searchParams: Promise<{
+    stage?: string
+    job?: string
+    search?: string
+    page?: string
+    sort?: string
+  }>
+}
+
+// Extended application type with joined relations
+interface ApplicationWithRelations extends Omit<Application, 'job' | 'candidate'> {
+  created_at: string
+  jobs: { id: string; title: string }
+  users: { first_name: string; last_name: string; email: string }
+  assessments?: Array<{ ai_total_score?: number | null; status: string; created_at: string }>
+}
+
+// Job type for filters
+interface JobForFilter {
+  id: string
+  title: string
+}
+
+export default async function ApplicationsPage({ searchParams }: ApplicationsPageProps) {
+  // Await searchParams as it's a promise in App Router
+  const resolvedSearchParams = await searchParams
+  const user = await requireAdmin()
+  const supabase = createClient()
+
+  // Build query based on search params
+  let query = supabase
+    .from('applications')
+    .select(`
+      *,
+      jobs!inner (id, title),
+      users!inner (first_name, last_name, email),
+      assessments (ai_total_score, status, created_at)
+    `, { count: 'exact' })
+    .eq('tenant_id', user.tenant_id)
+
+  // Apply filters
+  if (resolvedSearchParams.stage) {
+    query = query.eq('status', resolvedSearchParams.stage)
+  }
+  if (resolvedSearchParams.job) {
+    query = query.eq('job_id', resolvedSearchParams.job)
+  }
+  if (resolvedSearchParams.search) {
+    const searchTerm = resolvedSearchParams.search
+    query = query.or(
+      `users.first_name.ilike.%${searchTerm}%,users.last_name.ilike.%${searchTerm}%,users.email.ilike.%${searchTerm}%`
+    )
+  }
+
+  // Apply sorting
+  const sort = resolvedSearchParams.sort || 'created_at.desc'
+  const [sortField, sortOrder] = sort.split('.')
+  const ascending = sortOrder === 'asc'
+  
+  // Handle different sort fields with proper typing
+  if (sortField === 'first_name' || sortField === 'last_name' || sortField === 'email') {
+    query = query.order(`users.${sortField}`, { ascending })
+  } else if (sortField === 'job_id') {
+    query = query.order('jobs.title', { ascending })
+  } else {
+    query = query.order(sortField as any, { ascending })
+  }
+
+  // Apply pagination
+  const page = parseInt(resolvedSearchParams.page || '1')
+  const limit = 20
+  const start = (page - 1) * limit
+  const end = start + limit - 1
+  query = query.range(start, end)
+
+  const { data: applications, error, count } = await query
+
+  if (error) {
+    console.error('Error fetching applications:', error)
+  }
+
+  // Fetch jobs for filter dropdown
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('id, title')
+    .eq('tenant_id', user.tenant_id)
+    .eq('status', 'published')
+    .order('title')
+
+  const totalPages = Math.ceil((count || 0) / limit)
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
+          <p className="text-muted-foreground">
+            Manage and review candidate applications
+          </p>
+        </div>
+      </div>
+
+      <ApplicationsFilters 
+        jobs={(jobs as JobForFilter[]) || []}
+        currentFilters={resolvedSearchParams}
+      />
+
+      <ApplicationsTable 
+        applications={(applications as ApplicationWithRelations[]) || []}
+        totalCount={count || 0}
+        currentPage={page}
+        totalPages={totalPages}
+        currentSort={sort}
+      />
+    </div>
+  )
+}

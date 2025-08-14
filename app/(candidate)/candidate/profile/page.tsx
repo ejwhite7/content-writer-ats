@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { ProfileForm } from '@/components/candidate/profile-form'
 import { ProfileSettings } from '@/components/candidate/profile-settings'
@@ -35,11 +35,11 @@ export default async function ProfilePage() {
         </TabsList>
         
         <TabsContent value="profile" className="space-y-6">
-          <ProfileForm user={user} />
+          <ProfileForm />
         </TabsContent>
         
         <TabsContent value="settings" className="space-y-6">
-          <ProfileSettings user={user} />
+          <ProfileSettings />
         </TabsContent>
       </Tabs>
     </div>

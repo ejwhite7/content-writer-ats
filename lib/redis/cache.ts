@@ -74,7 +74,7 @@ export class CacheService {
     try {
       const redisKey = this.getKey(key, namespace)
       const result = await this.redis.expire(redisKey, ttl)
-      return result === 1
+      return result === true
     } catch (error) {
       console.error('Cache expire error:', error)
       return false
@@ -99,7 +99,7 @@ export class CacheService {
       
       if (keys.length === 0) return true
       
-      const result = await this.redis.del(...keys)
+      const result = await this.redis.del(keys)
       return result > 0
     } catch (error) {
       console.error('Cache flush namespace error:', error)

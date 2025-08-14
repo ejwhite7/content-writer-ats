@@ -22,11 +22,8 @@ Sentry.init({
   
   // Additional configuration
   integrations: [
-    new Sentry.BrowserTracing({
-      // Set sampling rate for performance monitoring
-      tracePropagationTargets: ['localhost', process.env.NEXT_PUBLIC_APP_URL],
-    }),
-    new Sentry.Replay({
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration({
       // Session replay for debugging (only in production)
       maskAllText: true,
       blockAllMedia: true,

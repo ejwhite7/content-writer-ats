@@ -1,1 +1,73 @@
-'use client'\n\nimport { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'\nimport { Users, UserCheck, Calendar, TrendingUp } from 'lucide-react'\n\ninterface DashboardStatsProps {\n  data: {\n    totalApplications: number\n    shortlistedCandidates: number\n    hiredThisMonth: number\n    avgTimeToHire: number\n  }\n}\n\nexport function DashboardStats({ data }: DashboardStatsProps) {\n  const stats = [\n    {\n      title: 'Applications This Month',\n      value: data.totalApplications,\n      icon: Users,\n      change: '+12%', // This could be calculated from previous month\n      changeType: 'positive' as const\n    },\n    {\n      title: 'Shortlisted',\n      value: data.shortlistedCandidates,\n      icon: UserCheck,\n      change: '+5%',\n      changeType: 'positive' as const\n    },\n    {\n      title: 'Hired This Month',\n      value: data.hiredThisMonth,\n      icon: TrendingUp,\n      change: '+8%',\n      changeType: 'positive' as const\n    },\n    {\n      title: 'Avg. Time to Hire',\n      value: `${data.avgTimeToHire} days`,\n      icon: Calendar,\n      change: '-2 days',\n      changeType: 'positive' as const\n    }\n  ]\n\n  return (\n    <div className=\"grid gap-4 md:grid-cols-2 lg:grid-cols-4\">\n      {stats.map((stat) => {\n        const Icon = stat.icon\n        return (\n          <Card key={stat.title}>\n            <CardHeader className=\"flex flex-row items-center justify-between space-y-0 pb-2\">\n              <CardTitle className=\"text-sm font-medium\">\n                {stat.title}\n              </CardTitle>\n              <Icon className=\"h-4 w-4 text-muted-foreground\" />\n            </CardHeader>\n            <CardContent>\n              <div className=\"text-2xl font-bold\">{stat.value}</div>\n              <p className=\"text-xs text-muted-foreground\">\n                <span className={stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}>\n                  {stat.change}\n                </span>\n                {' '}from last month\n              </p>\n            </CardContent>\n          </Card>\n        )\n      })}\n    </div>\n  )\n}"
+'use client'
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Users, UserCheck, Calendar, TrendingUp } from 'lucide-react'
+
+interface DashboardStatsProps {
+  data: {
+    totalApplications: number
+    shortlistedCandidates: number
+    hiredThisMonth: number
+    avgTimeToHire: number
+  }
+}
+
+export function DashboardStats({ data }: DashboardStatsProps) {
+  const stats = [
+    {
+      title: 'Applications This Month',
+      value: data.totalApplications,
+      icon: Users,
+      change: '+12%', // This could be calculated from previous month
+      changeType: 'positive' as const
+    },
+    {
+      title: 'Shortlisted',
+      value: data.shortlistedCandidates,
+      icon: UserCheck,
+      change: '+5%',
+      changeType: 'positive' as const
+    },
+    {
+      title: 'Hired This Month',
+      value: data.hiredThisMonth,
+      icon: TrendingUp,
+      change: '+8%',
+      changeType: 'positive' as const
+    },
+    {
+      title: 'Avg. Time to Hire',
+      value: `${data.avgTimeToHire} days`,
+      icon: Calendar,
+      change: '-2 days',
+      changeType: 'positive' as const
+    }
+  ]
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {stats.map((stat) => {
+        const Icon = stat.icon
+        return (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {stat.title}
+              </CardTitle>
+              <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">
+                <span className={stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}>
+                  {stat.change}
+                </span>
+                {' '}from last month
+              </p>
+            </CardContent>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}

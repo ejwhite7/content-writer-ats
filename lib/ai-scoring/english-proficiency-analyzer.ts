@@ -290,7 +290,12 @@ export class EnglishProficiencyAnalyzer {
     severity: 'low' | 'medium' | 'high'
     examples?: string[]
   }> {
-    const issues = []
+    const issues: Array<{
+      type: string
+      message: string
+      severity: 'low' | 'medium' | 'high'
+      examples?: string[]
+    }> = []
 
     // Check for frequent basic errors
     const basicErrors = [
@@ -317,8 +322,8 @@ export class EnglishProficiencyAnalyzer {
       issues.push({
         type: 'word-order',
         message: 'Unnatural word order detected',
-        severity: 'medium',
-        examples: wordOrderIssues
+        severity: 'medium' as const,
+        examples: wordOrderIssues.map(m => m.trim())
       })
     }
 

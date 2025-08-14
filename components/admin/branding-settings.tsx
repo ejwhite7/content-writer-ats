@@ -1,1 +1,509 @@
-'use client'\n\nimport { useState } from 'react'\nimport { useForm } from 'react-hook-form'\nimport { zodResolver } from '@hookform/resolvers/zod'\nimport * as z from 'zod'\nimport { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'\nimport { Button } from '@/components/ui/button'\nimport { Input } from '@/components/ui/input'\nimport { Textarea } from '@/components/ui/textarea'\nimport { Label } from '@/components/ui/label'\nimport { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'\nimport { FileUpload } from '@/components/ui/file-upload'\nimport { useToast } from '@/components/ui/use-toast'\nimport { useBranding } from '@/lib/branding/branding-provider'\nimport { createClient } from '@/lib/supabase/client'\nimport { Loader2, Save, Eye, RefreshCw } from 'lucide-react'\n\nconst brandingSchema = z.object({\n  company_name: z.string().min(1, 'Company name is required'),\n  primary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color'),\n  secondary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color'),\n  accent_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color'),\n  font_family: z.string().min(1, 'Font family is required'),\n  custom_domain: z.string().optional(),\n  footer_text: z.string().optional(),\n  contact_email: z.string().email().optional().or(z.literal('')),\n  privacy_policy_url: z.string().url().optional().or(z.literal('')),\n  terms_of_service_url: z.string().url().optional().or(z.literal('')),\n  custom_css: z.string().optional()\n})\n\ntype BrandingFormData = z.infer<typeof brandingSchema>\n\ninterface BrandingSettingsProps {\n  initialBranding?: any\n  tenant?: any\n}\n\nconst FONT_OPTIONS = [\n  { value: 'Inter', label: 'Inter' },\n  { value: 'Roboto', label: 'Roboto' },\n  { value: 'Open Sans', label: 'Open Sans' },\n  { value: 'Lato', label: 'Lato' },\n  { value: 'Montserrat', label: 'Montserrat' },\n  { value: 'Poppins', label: 'Poppins' },\n  { value: 'Source Sans Pro', label: 'Source Sans Pro' },\n]\n\nexport function BrandingSettings({ initialBranding, tenant }: BrandingSettingsProps) {\n  const { branding, updateBranding, applyBrandingStyles } = useBranding()\n  const { toast } = useToast()\n  const [saving, setSaving] = useState(false)\n  const [logoFile, setLogoFile] = useState<File | null>(null)\n  const [faviconFile, setFaviconFile] = useState<File | null>(null)\n  const supabase = createClient()\n\n  const form = useForm<BrandingFormData>({\n    resolver: zodResolver(brandingSchema),\n    defaultValues: {\n      company_name: initialBranding?.company_name || tenant?.name || '',\n      primary_color: initialBranding?.primary_color || '#2563eb',\n      secondary_color: initialBranding?.secondary_color || '#64748b',\n      accent_color: initialBranding?.accent_color || '#059669',\n      font_family: initialBranding?.font_family || 'Inter',\n      custom_domain: initialBranding?.custom_domain || '',\n      footer_text: initialBranding?.footer_text || 'Powered by ATS Platform',\n      contact_email: initialBranding?.contact_email || '',\n      privacy_policy_url: initialBranding?.privacy_policy_url || '',\n      terms_of_service_url: initialBranding?.terms_of_service_url || '',\n      custom_css: initialBranding?.custom_css || ''\n    }\n  })\n\n  const uploadFile = async (file: File, bucket: string, path: string): Promise<string> => {\n    const { data, error } = await supabase.storage\n      .from(bucket)\n      .upload(path, file, { upsert: true })\n\n    if (error) throw error\n\n    const { data: { publicUrl } } = supabase.storage\n      .from(bucket)\n      .getPublicUrl(path)\n\n    return publicUrl\n  }\n\n  const onSubmit = async (data: BrandingFormData) => {\n    setSaving(true)\n    \n    try {\n      let logoUrl = initialBranding?.logo_url\n      let faviconUrl = initialBranding?.favicon_url\n\n      // Upload logo if provided\n      if (logoFile) {\n        logoUrl = await uploadFile(\n          logoFile, \n          'branding', \n          `${tenant?.id}/logo-${Date.now()}.${logoFile.name.split('.').pop()}`\n        )\n      }\n\n      // Upload favicon if provided\n      if (faviconFile) {\n        faviconUrl = await uploadFile(\n          faviconFile, \n          'branding', \n          `${tenant?.id}/favicon-${Date.now()}.${faviconFile.name.split('.').pop()}`\n        )\n      }\n\n      const updates = {\n        ...data,\n        logo_url: logoUrl,\n        favicon_url: faviconUrl,\n      }\n\n      await updateBranding(updates)\n\n      toast({\n        title: 'Branding Updated',\n        description: 'Your branding settings have been saved successfully.'\n      })\n    } catch (error) {\n      console.error('Error saving branding:', error)\n      toast({\n        title: 'Error',\n        description: 'Failed to save branding settings. Please try again.',\n        variant: 'destructive'\n      })\n    } finally {\n      setSaving(false)\n    }\n  }\n\n  const previewChanges = () => {\n    const formData = form.getValues()\n    // Temporarily apply styles for preview\n    const tempBranding = {\n      ...branding,\n      ...formData\n    }\n    \n    // Apply styles temporarily\n    const root = document.documentElement\n    root.style.setProperty('--primary', hexToHsl(formData.primary_color))\n    root.style.setProperty('--secondary', hexToHsl(formData.secondary_color))\n    root.style.setProperty('--accent', hexToHsl(formData.accent_color))\n    document.body.style.fontFamily = formData.font_family\n\n    toast({\n      title: 'Preview Applied',\n      description: 'Preview changes applied. Save to make them permanent.'\n    })\n  }\n\n  const resetPreview = () => {\n    applyBrandingStyles()\n    toast({\n      title: 'Preview Reset',\n      description: 'Preview reset to saved settings.'\n    })\n  }\n\n  return (\n    <form onSubmit={form.handleSubmit(onSubmit)} className=\"space-y-6\">\n      <Tabs defaultValue=\"general\" className=\"w-full\">\n        <TabsList className=\"grid w-full grid-cols-4\">\n          <TabsTrigger value=\"general\">General</TabsTrigger>\n          <TabsTrigger value=\"colors\">Colors & Fonts</TabsTrigger>\n          <TabsTrigger value=\"assets\">Assets</TabsTrigger>\n          <TabsTrigger value=\"advanced\">Advanced</TabsTrigger>\n        </TabsList>\n\n        <TabsContent value=\"general\" className=\"space-y-4\">\n          <Card>\n            <CardHeader>\n              <CardTitle>General Settings</CardTitle>\n            </CardHeader>\n            <CardContent className=\"space-y-4\">\n              <div>\n                <Label htmlFor=\"company_name\">Company Name</Label>\n                <Input\n                  id=\"company_name\"\n                  {...form.register('company_name')}\n                  error={form.formState.errors.company_name?.message}\n                />\n              </div>\n              \n              <div>\n                <Label htmlFor=\"contact_email\">Contact Email</Label>\n                <Input\n                  id=\"contact_email\"\n                  type=\"email\"\n                  {...form.register('contact_email')}\n                  error={form.formState.errors.contact_email?.message}\n                />\n              </div>\n              \n              <div>\n                <Label htmlFor=\"custom_domain\">Custom Domain</Label>\n                <Input\n                  id=\"custom_domain\"\n                  placeholder=\"hire.yourcompany.com\"\n                  {...form.register('custom_domain')}\n                  error={form.formState.errors.custom_domain?.message}\n                />\n              </div>\n              \n              <div>\n                <Label htmlFor=\"footer_text\">Footer Text</Label>\n                <Textarea\n                  id=\"footer_text\"\n                  placeholder=\"Powered by ATS Platform\"\n                  {...form.register('footer_text')}\n                />\n              </div>\n            </CardContent>\n          </Card>\n        </TabsContent>\n\n        <TabsContent value=\"colors\" className=\"space-y-4\">\n          <Card>\n            <CardHeader>\n              <CardTitle>Colors & Typography</CardTitle>\n            </CardHeader>\n            <CardContent className=\"space-y-4\">\n              <div className=\"grid grid-cols-1 md:grid-cols-3 gap-4\">\n                <div>\n                  <Label htmlFor=\"primary_color\">Primary Color</Label>\n                  <div className=\"flex items-center space-x-2\">\n                    <Input\n                      id=\"primary_color\"\n                      type=\"color\"\n                      className=\"w-16 h-10 p-1 border\"\n                      {...form.register('primary_color')}\n                    />\n                    <Input\n                      value={form.watch('primary_color')}\n                      onChange={(e) => form.setValue('primary_color', e.target.value)}\n                      placeholder=\"#2563eb\"\n                    />\n                  </div>\n                </div>\n                \n                <div>\n                  <Label htmlFor=\"secondary_color\">Secondary Color</Label>\n                  <div className=\"flex items-center space-x-2\">\n                    <Input\n                      id=\"secondary_color\"\n                      type=\"color\"\n                      className=\"w-16 h-10 p-1 border\"\n                      {...form.register('secondary_color')}\n                    />\n                    <Input\n                      value={form.watch('secondary_color')}\n                      onChange={(e) => form.setValue('secondary_color', e.target.value)}\n                      placeholder=\"#64748b\"\n                    />\n                  </div>\n                </div>\n                \n                <div>\n                  <Label htmlFor=\"accent_color\">Accent Color</Label>\n                  <div className=\"flex items-center space-x-2\">\n                    <Input\n                      id=\"accent_color\"\n                      type=\"color\"\n                      className=\"w-16 h-10 p-1 border\"\n                      {...form.register('accent_color')}\n                    />\n                    <Input\n                      value={form.watch('accent_color')}\n                      onChange={(e) => form.setValue('accent_color', e.target.value)}\n                      placeholder=\"#059669\"\n                    />\n                  </div>\n                </div>\n              </div>\n              \n              <div>\n                <Label htmlFor=\"font_family\">Font Family</Label>\n                <select\n                  {...form.register('font_family')}\n                  className=\"w-full px-3 py-2 border border-input bg-background rounded-md\"\n                >\n                  {FONT_OPTIONS.map(font => (\n                    <option key={font.value} value={font.value}>\n                      {font.label}\n                    </option>\n                  ))}\n                </select>\n              </div>\n            </CardContent>\n          </Card>\n        </TabsContent>\n\n        <TabsContent value=\"assets\" className=\"space-y-4\">\n          <Card>\n            <CardHeader>\n              <CardTitle>Brand Assets</CardTitle>\n            </CardHeader>\n            <CardContent className=\"space-y-4\">\n              <div>\n                <Label>Company Logo</Label>\n                <FileUpload\n                  accept=\"image/*\"\n                  onFileSelect={(file) => setLogoFile(file as File)}\n                  maxSize={2 * 1024 * 1024} // 2MB\n                  description=\"Upload your company logo (PNG, JPG, SVG, max 2MB)\"\n                />\n                {initialBranding?.logo_url && !logoFile && (\n                  <div className=\"mt-2\">\n                    <img \n                      src={initialBranding.logo_url} \n                      alt=\"Current logo\" \n                      className=\"h-16 object-contain\"\n                    />\n                  </div>\n                )}\n              </div>\n              \n              <div>\n                <Label>Favicon</Label>\n                <FileUpload\n                  accept=\"image/*\"\n                  onFileSelect={(file) => setFaviconFile(file as File)}\n                  maxSize={1 * 1024 * 1024} // 1MB\n                  description=\"Upload favicon (PNG, ICO, max 1MB, recommended 32x32px)\"\n                />\n                {initialBranding?.favicon_url && !faviconFile && (\n                  <div className=\"mt-2\">\n                    <img \n                      src={initialBranding.favicon_url} \n                      alt=\"Current favicon\" \n                      className=\"h-8 w-8 object-contain\"\n                    />\n                  </div>\n                )}\n              </div>\n            </CardContent>\n          </Card>\n        </TabsContent>\n\n        <TabsContent value=\"advanced\" className=\"space-y-4\">\n          <Card>\n            <CardHeader>\n              <CardTitle>Advanced Settings</CardTitle>\n            </CardHeader>\n            <CardContent className=\"space-y-4\">\n              <div>\n                <Label htmlFor=\"privacy_policy_url\">Privacy Policy URL</Label>\n                <Input\n                  id=\"privacy_policy_url\"\n                  type=\"url\"\n                  placeholder=\"https://yourcompany.com/privacy\"\n                  {...form.register('privacy_policy_url')}\n                  error={form.formState.errors.privacy_policy_url?.message}\n                />\n              </div>\n              \n              <div>\n                <Label htmlFor=\"terms_of_service_url\">Terms of Service URL</Label>\n                <Input\n                  id=\"terms_of_service_url\"\n                  type=\"url\"\n                  placeholder=\"https://yourcompany.com/terms\"\n                  {...form.register('terms_of_service_url')}\n                  error={form.formState.errors.terms_of_service_url?.message}\n                />\n              </div>\n              \n              <div>\n                <Label htmlFor=\"custom_css\">Custom CSS</Label>\n                <Textarea\n                  id=\"custom_css\"\n                  rows={8}\n                  placeholder=\"/* Add your custom CSS here */\"\n                  {...form.register('custom_css')}\n                  className=\"font-mono text-sm\"\n                />\n                <p className=\"text-sm text-muted-foreground mt-1\">\n                  Advanced users can add custom CSS to further customize the appearance\n                </p>\n              </div>\n            </CardContent>\n          </Card>\n        </TabsContent>\n      </Tabs>\n\n      <div className=\"flex items-center justify-between\">\n        <div className=\"flex items-center space-x-2\">\n          <Button\n            type=\"button\"\n            variant=\"outline\"\n            onClick={previewChanges}\n          >\n            <Eye className=\"h-4 w-4 mr-2\" />\n            Preview Changes\n          </Button>\n          <Button\n            type=\"button\"\n            variant=\"outline\"\n            onClick={resetPreview}\n          >\n            <RefreshCw className=\"h-4 w-4 mr-2\" />\n            Reset Preview\n          </Button>\n        </div>\n        \n        <Button type=\"submit\" disabled={saving}>\n          {saving && <Loader2 className=\"h-4 w-4 mr-2 animate-spin\" />}\n          <Save className=\"h-4 w-4 mr-2\" />\n          Save Changes\n        </Button>\n      </div>\n    </form>\n  )\n}\n\n// Utility function to convert hex to HSL\nfunction hexToHsl(hex: string): string {\n  hex = hex.replace('#', '')\n  const r = parseInt(hex.substr(0, 2), 16) / 255\n  const g = parseInt(hex.substr(2, 2), 16) / 255\n  const b = parseInt(hex.substr(4, 2), 16) / 255\n\n  const max = Math.max(r, g, b)\n  const min = Math.min(r, g, b)\n  let h, s, l = (max + min) / 2\n\n  if (max === min) {\n    h = s = 0\n  } else {\n    const d = max - min\n    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)\n    switch (max) {\n      case r: h = (g - b) / d + (g < b ? 6 : 0); break\n      case g: h = (b - r) / d + 2; break\n      case b: h = (r - g) / d + 4; break\n      default: h = 0\n    }\n    h /= 6\n  }\n\n  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`\n}"
+'use client'
+
+import React, { useState } from 'react'
+import { useForm, SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FileUpload } from '@/components/ui/file-upload'
+import { useToast } from '@/components/ui/use-toast'
+import { useBranding, type BrandingSettings, type BrandingUpdateInput } from '@/lib/branding/branding-provider'
+import { createClient } from '@/lib/supabase/client'
+import { Loader2, Save, Eye, RefreshCw } from 'lucide-react'
+
+const brandingSchema = z.object({
+  company_name: z.string().min(1, 'Company name is required'),
+  primary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color'),
+  secondary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color'),
+  accent_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color'),
+  font_family: z.string().min(1, 'Font family is required'),
+  custom_domain: z.string().optional(),
+  footer_text: z.string().optional(),
+  contact_email: z.string().email().optional().or(z.literal('')),
+  privacy_policy_url: z.string().url().optional().or(z.literal('')),
+  terms_of_service_url: z.string().url().optional().or(z.literal('')),
+  custom_css: z.string().optional(),
+  background_color: z.string().optional(),
+  text_color: z.string().optional(),
+  tagline: z.string().optional(),
+  website_url: z.string().url().optional().or(z.literal('')),
+  email_sender_name: z.string().optional(),
+  email_sender_address: z.string().email().optional().or(z.literal(''))
+})
+
+type BrandingFormData = z.infer<typeof brandingSchema>
+
+interface TenantData {
+  id?: string
+  name?: string
+}
+
+interface BrandingSettingsProps {
+  initialBranding?: BrandingSettings
+  tenant?: TenantData
+}
+
+interface FontOption {
+  value: string
+  label: string
+}
+
+const FONT_OPTIONS: FontOption[] = [
+  { value: 'Inter', label: 'Inter' },
+  { value: 'Roboto', label: 'Roboto' },
+  { value: 'Open Sans', label: 'Open Sans' },
+  { value: 'Lato', label: 'Lato' },
+  { value: 'Montserrat', label: 'Montserrat' },
+  { value: 'Poppins', label: 'Poppins' },
+  { value: 'Source Sans Pro', label: 'Source Sans Pro' },
+]
+
+
+export function BrandingSettings({ initialBranding, tenant }: BrandingSettingsProps) {
+  const { branding, updateBranding, applyBrandingStyles } = useBranding()
+  const { toast } = useToast()
+  const [saving, setSaving] = useState<boolean>(false)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [faviconFile, setFaviconFile] = useState<File | null>(null)
+  const supabase = createClient()
+
+  const form = useForm<BrandingFormData>({
+    resolver: zodResolver(brandingSchema),
+    defaultValues: {
+      company_name: initialBranding?.company_name || tenant?.name || '',
+      primary_color: initialBranding?.primary_color || '#2563eb',
+      secondary_color: initialBranding?.secondary_color || '#64748b',
+      accent_color: initialBranding?.accent_color || '#059669',
+      font_family: initialBranding?.font_family || 'Inter',
+      custom_domain: initialBranding?.custom_domain || '',
+      footer_text: initialBranding?.footer_text || 'Powered by ATS Platform',
+      contact_email: initialBranding?.contact_email || '',
+      privacy_policy_url: initialBranding?.privacy_policy_url || '',
+      terms_of_service_url: initialBranding?.terms_of_service_url || '',
+      custom_css: initialBranding?.custom_css || ''
+    }
+  })
+
+  const uploadFile = async (file: File, bucket: string, path: string): Promise<string> => {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { upsert: true })
+
+    if (error) throw error
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(path)
+
+    return publicUrl
+  }
+
+  const onSubmit: SubmitHandler<BrandingFormData> = async (data) => {
+    setSaving(true)
+    
+    try {
+      let logoUrl = initialBranding?.logo_url
+      let faviconUrl = initialBranding?.favicon_url
+
+      // Upload logo if provided
+      if (logoFile) {
+        const fileExtension = logoFile.name.split('.').pop()
+        logoUrl = await uploadFile(
+          logoFile, 
+          'branding', 
+          `${tenant?.id}/logo-${Date.now()}.${fileExtension}`
+        )
+      }
+
+      // Upload favicon if provided
+      if (faviconFile) {
+        const fileExtension = faviconFile.name.split('.').pop()
+        faviconUrl = await uploadFile(
+          faviconFile, 
+          'branding', 
+          `${tenant?.id}/favicon-${Date.now()}.${fileExtension}`
+        )
+      }
+
+      const updates: BrandingUpdateInput = {
+        ...data,
+        logo_url: logoUrl,
+        favicon_url: faviconUrl,
+        social_links: initialBranding?.social_links || {}
+      }
+
+      await updateBranding(updates)
+
+      toast({
+        title: 'Branding Updated',
+        description: 'Your branding settings have been saved successfully.'
+      })
+    } catch (error) {
+      console.error('Error saving branding:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save branding settings. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const previewChanges = (): void => {
+    const formData = form.getValues()
+    
+    // Apply styles temporarily
+    const root = document.documentElement
+    root.style.setProperty('--primary', hexToHsl(formData.primary_color))
+    root.style.setProperty('--secondary', hexToHsl(formData.secondary_color))
+    root.style.setProperty('--accent', hexToHsl(formData.accent_color))
+    document.body.style.fontFamily = formData.font_family
+
+    toast({
+      title: 'Preview Applied',
+      description: 'Preview changes applied. Save to make them permanent.'
+    })
+  }
+
+  const resetPreview = (): void => {
+    applyBrandingStyles()
+    toast({
+      title: 'Preview Reset',
+      description: 'Preview reset to saved settings.'
+    })
+  }
+
+  const handleFileSelect = (file: File | File[]): void => {
+    if (Array.isArray(file)) {
+      setLogoFile(file[0] || null)
+    } else {
+      setLogoFile(file || null)
+    }
+  }
+
+  const handleFaviconFileSelect = (file: File | File[]): void => {
+    if (Array.isArray(file)) {
+      setFaviconFile(file[0] || null)
+    } else {
+      setFaviconFile(file || null)
+    }
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="colors">Colors & Fonts</TabsTrigger>
+          <TabsTrigger value="assets">Assets</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>General Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="company_name">Company Name</Label>
+                <Input
+                  id="company_name"
+                  {...form.register('company_name')}
+                />
+                {form.formState.errors.company_name && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.company_name.message}</p>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="contact_email">Contact Email</Label>
+                <Input
+                  id="contact_email"
+                  type="email"
+                  {...form.register('contact_email')}
+                />
+                {form.formState.errors.contact_email && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.contact_email.message}</p>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="custom_domain">Custom Domain</Label>
+                <Input
+                  id="custom_domain"
+                  placeholder="hire.yourcompany.com"
+                  {...form.register('custom_domain')}
+                />
+                {form.formState.errors.custom_domain && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.custom_domain.message}</p>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="footer_text">Footer Text</Label>
+                <Textarea
+                  id="footer_text"
+                  placeholder="Powered by ATS Platform"
+                  {...form.register('footer_text')}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="colors" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Colors & Typography</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="primary_color">Primary Color</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="primary_color"
+                      type="color"
+                      className="w-16 h-10 p-1 border"
+                      {...form.register('primary_color')}
+                    />
+                    <Input
+                      value={form.watch('primary_color')}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                        form.setValue('primary_color', e.target.value)
+                      }
+                      placeholder="#2563eb"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="secondary_color">Secondary Color</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="secondary_color"
+                      type="color"
+                      className="w-16 h-10 p-1 border"
+                      {...form.register('secondary_color')}
+                    />
+                    <Input
+                      value={form.watch('secondary_color')}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                        form.setValue('secondary_color', e.target.value)
+                      }
+                      placeholder="#64748b"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="accent_color">Accent Color</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="accent_color"
+                      type="color"
+                      className="w-16 h-10 p-1 border"
+                      {...form.register('accent_color')}
+                    />
+                    <Input
+                      value={form.watch('accent_color')}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                        form.setValue('accent_color', e.target.value)
+                      }
+                      placeholder="#059669"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="font_family">Font Family</Label>
+                <select
+                  {...form.register('font_family')}
+                  className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                >
+                  {FONT_OPTIONS.map((font: FontOption) => (
+                    <option key={font.value} value={font.value}>
+                      {font.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="assets" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Brand Assets</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Company Logo</Label>
+                <FileUpload
+                  accept="image/*"
+                  onFileSelect={handleFileSelect}
+                  maxSize={2 * 1024 * 1024}
+                  description="Upload your company logo (PNG, JPG, SVG, max 2MB)"
+                />
+                {initialBranding?.logo_url && !logoFile && (
+                  <div className="mt-2">
+                    <img 
+                      src={initialBranding.logo_url} 
+                      alt="Current logo" 
+                      className="h-16 object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <Label>Favicon</Label>
+                <FileUpload
+                  accept="image/*"
+                  onFileSelect={handleFaviconFileSelect}
+                  maxSize={1 * 1024 * 1024}
+                  description="Upload favicon (PNG, ICO, max 1MB, recommended 32x32px)"
+                />
+                {initialBranding?.favicon_url && !faviconFile && (
+                  <div className="mt-2">
+                    <img 
+                      src={initialBranding.favicon_url} 
+                      alt="Current favicon" 
+                      className="h-8 w-8 object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="advanced" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Advanced Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="privacy_policy_url">Privacy Policy URL</Label>
+                <Input
+                  id="privacy_policy_url"
+                  type="url"
+                  placeholder="https://yourcompany.com/privacy"
+                  {...form.register('privacy_policy_url')}
+                />
+                {form.formState.errors.privacy_policy_url && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.privacy_policy_url.message}</p>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="terms_of_service_url">Terms of Service URL</Label>
+                <Input
+                  id="terms_of_service_url"
+                  type="url"
+                  placeholder="https://yourcompany.com/terms"
+                  {...form.register('terms_of_service_url')}
+                />
+                {form.formState.errors.terms_of_service_url && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.terms_of_service_url.message}</p>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="custom_css">Custom CSS</Label>
+                <Textarea
+                  id="custom_css"
+                  rows={8}
+                  placeholder="/* Add your custom CSS here */"
+                  {...form.register('custom_css')}
+                  className="font-mono text-sm"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Advanced users can add custom CSS to further customize the appearance
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={previewChanges}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Preview Changes
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={resetPreview}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reset Preview
+          </Button>
+        </div>
+        
+        <Button type="submit" disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          <Save className="h-4 w-4 mr-2" />
+          Save Changes
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+// Utility function to convert hex to HSL
+function hexToHsl(hex: string): string {
+  if (!hex || typeof hex !== 'string') {
+    return '0 0% 0%' // Default to black
+  }
+  
+  const normalizedHex = hex.replace('#', '')
+  if (!/^[0-9A-Fa-f]{6}$/.test(normalizedHex)) {
+    return '0 0% 0%' // Default to black
+  }
+  
+  const r = parseInt(normalizedHex.substring(0, 2), 16) / 255
+  const g = parseInt(normalizedHex.substring(2, 4), 16) / 255
+  const b = parseInt(normalizedHex.substring(4, 6), 16) / 255
+
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  let h: number = 0
+  let s: number = 0
+  const l = (max + min) / 2
+
+  if (max !== min) {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    switch (max) {
+      case r: 
+        h = (g - b) / d + (g < b ? 6 : 0)
+        break
+      case g: 
+        h = (b - r) / d + 2
+        break
+      case b: 
+        h = (r - g) / d + 4
+        break
+    }
+    h /= 6
+  }
+
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
+}

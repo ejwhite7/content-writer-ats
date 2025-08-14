@@ -1,16 +1,48 @@
 export interface ReadabilityResult {
   score: number
+  grade_level: number
+  reading_ease: number
   flesch_kincaid_grade: number
   flesch_reading_ease: number
   gunning_fog_index: number
   smog_index: number
   automated_readability_index: number
   coleman_liau_index: number
+  metrics: {
+    sentences: number
+    words: number
+    syllables: number
+    avg_sentence_length: number
+    avg_syllables_per_word: number
+  }
   feedback: string[]
 }
 
 export class ReadabilityAnalyzer {
   analyze(text: string): ReadabilityResult {
+    // Handle empty text
+    if (!text || text.trim().length === 0) {
+      return {
+        score: 0,
+        grade_level: 0,
+        reading_ease: 0,
+        flesch_kincaid_grade: 0,
+        flesch_reading_ease: 0,
+        gunning_fog_index: 0,
+        smog_index: 0,
+        automated_readability_index: 0,
+        coleman_liau_index: 0,
+        metrics: {
+          sentences: 0,
+          words: 0,
+          syllables: 0,
+          avg_sentence_length: 0,
+          avg_syllables_per_word: 0
+        },
+        feedback: ['No content to analyze']
+      }
+    }
+
     const sentences = this.countSentences(text)
     const words = this.countWords(text)
     const syllables = this.countSyllables(text)
@@ -64,12 +96,21 @@ export class ReadabilityAnalyzer {
 
     return {
       score: Math.max(0, Math.min(100, Math.round(score))),
+      grade_level: Math.round(averageGradeLevel * 10) / 10,
+      reading_ease: Math.round(fleschReadingEase * 10) / 10,
       flesch_kincaid_grade: Math.round(fleschKincaidGrade * 10) / 10,
       flesch_reading_ease: Math.round(fleschReadingEase * 10) / 10,
       gunning_fog_index: Math.round(gunningFogIndex * 10) / 10,
       smog_index: Math.round(smogIndex * 10) / 10,
       automated_readability_index: Math.round(automatedReadabilityIndex * 10) / 10,
       coleman_liau_index: Math.round(colemanLiauIndex * 10) / 10,
+      metrics: {
+        sentences,
+        words,
+        syllables,
+        avg_sentence_length: Math.round((words / sentences) * 10) / 10,
+        avg_syllables_per_word: Math.round((syllables / words) * 10) / 10
+      },
       feedback
     }
   }

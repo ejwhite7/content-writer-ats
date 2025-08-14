@@ -286,7 +286,12 @@ export class AIDetectionAnalyzer {
     confidence: number
     description: string
   }> {
-    const indicators = []
+    const indicators: Array<{
+      type: 'human' | 'ai'
+      feature: string
+      confidence: number
+      description: string
+    }> = []
     
     // High perplexity = human-like
     if (scores.perplexity > 80) {

@@ -1,10 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { AIScorer } from '@/lib/ai-scoring/ai-scorer'\nimport { EmailTriggers } from '@/lib/email/email-triggers'
+import { AIScorer, type AIScores } from '@/lib/ai-scoring/ai-scorer'
+import { EmailTriggers } from '@/lib/email/email-triggers'
 
-export async function POST(request: NextRequest) {
+// Interface for request body
+interface ScoreAssessmentRequest {
+  assessmentId: string
+}
+
+// Interface for assessment with joined data
+interface AssessmentWithRelations {
+  id: string
+  content: string
+  tenant_id: string
+  application_id: string
+  applications: {
+    id: string
+    stage: string
+    jobs: {
+      id: string
+      title: string
+      job_settings?: {
+        shortlist_threshold?: number
+        [key: string]: any
+      } | null
+    }
+  }
+}
+
+// Interface for response
+interface ScoreAssessmentResponse {
+  success: boolean
+  scores: AIScores
+  stage: string
+}
+
+// Interface for audit log entry
+interface AuditLogEntry {
+  table_name: string
+  record_id: string
+  action: string
+  changes: {
+    ai_scores: AIScores
+    stage_updated: string
+  }
+  performed_by: string
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse<ScoreAssessmentResponse | { error: string }>> {
   try {
-    const { assessmentId } = await request.json()
+    const { assessmentId }: ScoreAssessmentRequest = await request.json()
 
     if (!assessmentId) {
       return NextResponse.json(
@@ -38,13 +83,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const typedAssessment = assessment as AssessmentWithRelations
+
     // Initialize AI scorer
     const aiScorer = new AIScorer()
 
     // Run AI scoring
     const scores = await aiScorer.scoreAssessment(
-      assessment.content,
-      assessment.applications.jobs.job_settings
+      typedAssessment.content,
+      typedAssessment.applications.jobs.job_settings
     )
 
     // Update assessment with scores
@@ -63,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update application stage based on score
-    const threshold = assessment.applications.jobs.job_settings?.shortlist_threshold || 75
+    const threshold = typedAssessment.applications.jobs.job_settings?.shortlist_threshold || 75
     const newStage = scores.composite_score >= threshold ? 'shortlisted' : 'ai_reviewed'
     
     await supabase
@@ -72,21 +119,23 @@ export async function POST(request: NextRequest) {
         stage: newStage,
         status: newStage === 'shortlisted' ? 'shortlisted' : 'reviewed'
       })
-      .eq('id', assessment.applications.id)
+      .eq('id', typedAssessment.applications.id)
 
     // Log scoring event
+    const auditLogEntry: AuditLogEntry = {
+      table_name: 'assessments',
+      record_id: assessmentId,
+      action: 'ai_scored',
+      changes: {
+        ai_scores: scores,
+        stage_updated: newStage
+      },
+      performed_by: 'system'
+    }
+
     await supabase
       .from('audit_logs')
-      .insert({
-        table_name: 'assessments',
-        record_id: assessmentId,
-        action: 'ai_scored',
-        changes: {
-          ai_scores: scores,
-          stage_updated: newStage
-        },
-        performed_by: 'system'
-      })
+      .insert(auditLogEntry)
 
     // Trigger email notifications
     const emailTriggers = new EmailTriggers()

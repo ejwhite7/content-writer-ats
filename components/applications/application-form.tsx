@@ -265,7 +265,13 @@ export function ApplicationForm({ job, user }: ApplicationFormProps) {
                   <Label>Resume/CV</Label>
                   <FileUpload
                     accept=".pdf,.doc,.docx"
-                    onFileSelect={setResumeFile}
+                    onFileSelect={(files) => {
+                      if (Array.isArray(files)) {
+                        setResumeFile(files[0] || null)
+                      } else {
+                        setResumeFile(files || null)
+                      }
+                    }}
                     maxSize={5 * 1024 * 1024} // 5MB
                     description="Upload your resume (PDF, DOC, or DOCX, max 5MB)"
                   />

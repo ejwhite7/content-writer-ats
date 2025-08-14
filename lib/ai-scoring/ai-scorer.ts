@@ -5,7 +5,7 @@ import { SEOAnalyzer } from './seo-analyzer'
 import { EnglishProficiencyAnalyzer } from './english-proficiency-analyzer'
 import { AIDetectionAnalyzer } from './ai-detection-analyzer'
 import { cache } from '@/lib/redis/cache'
-import crypto from 'crypto'
+import * as crypto from 'crypto'
 
 export interface AIScores {
   readability_score: number

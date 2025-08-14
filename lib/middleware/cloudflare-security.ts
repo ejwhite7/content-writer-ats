@@ -155,7 +155,7 @@ function getSecurityResponseHeaders(): Record<string, string> {
 
 // Specific middleware for different route types
 export function withAPISecurityMiddleware(request: NextRequest) {
-  return withCloudflareSececurity(request, {
+  return withCloudflareSecurity(request, {
     enableThreatBlocking: true,
     enableBotBlocking: true,
     enableSecurityHeaders: true,

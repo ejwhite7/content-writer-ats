@@ -29,9 +29,7 @@ Sentry.init({
   },
   
   // Additional configuration
-  integrations: [
-    new Sentry.NodeProfilingIntegration(),
-  ],
+  integrations: [],
   
   // Profiling (only in production)
   profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0,

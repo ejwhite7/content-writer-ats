@@ -280,7 +280,7 @@ export class WritingQualityAnalyzer {
   }
 
   private findGrammarIssues(text: string): Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high'; suggestion?: string }> {
-    const issues = []
+    const issues: Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high'; suggestion?: string }> = []
 
     // Passive voice detection
     const passivePatterns = [
@@ -294,7 +294,7 @@ export class WritingQualityAnalyzer {
         issues.push({
           type: 'style',
           message: `Frequent passive voice usage (${matches.length} instances)`,
-          severity: 'medium',
+          severity: 'medium' as const,
           suggestion: 'Consider using more active voice constructions'
         })
         break
@@ -305,7 +305,7 @@ export class WritingQualityAnalyzer {
   }
 
   private findStructureIssues(text: string): Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high' }> {
-    const issues = []
+    const issues: Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high' }> = []
     const paragraphs = text.split(/\\n\\s*\\n/).filter(p => p.trim().length > 0)
 
     // Single paragraph issue
@@ -313,7 +313,7 @@ export class WritingQualityAnalyzer {
       issues.push({
         type: 'structure',
         message: 'Consider breaking long content into multiple paragraphs',
-        severity: 'medium'
+        severity: 'medium' as const
       })
     }
 
@@ -323,7 +323,7 @@ export class WritingQualityAnalyzer {
       issues.push({
         type: 'structure',
         message: 'Many paragraphs are quite short - consider expanding ideas',
-        severity: 'low'
+        severity: 'low' as const
       })
     }
 
@@ -331,7 +331,7 @@ export class WritingQualityAnalyzer {
   }
 
   private findVocabularyIssues(text: string): Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high' }> {
-    const issues = []
+    const issues: Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high' }> = []
 
     // Repetitive word usage
     const words = text.toLowerCase().match(/\\b\\w{4,}\\b/g) || []
@@ -347,10 +347,11 @@ export class WritingQualityAnalyzer {
 
     if (overusedWords.length > 0) {
       const [word, count] = overusedWords[0]
+      const severity: 'low' | 'medium' | 'high' = count > 6 ? 'medium' : 'low'
       issues.push({
         type: 'vocabulary',
         message: `Word "${word}" appears ${count} times - consider using synonyms`,
-        severity: count > 6 ? 'medium' : 'low'
+        severity
       })
     }
 
@@ -368,7 +369,7 @@ export class WritingQualityAnalyzer {
     structureScore: number,
     vocabularyScore: number,
     coherenceScore: number,
-    issues: Array<{ type: string; message: string; severity: string }>
+    issues: Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high' }>
   ): string[] {
     const feedback = []
 

@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { Metadata } from 'next'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { createClient } from '@/lib/supabase/server'
 import { ApplicationDetail } from '@/components/candidate/application-detail'
 import { Application } from '@/types/database'
@@ -93,9 +93,33 @@ export default async function ApplicationDetailPage({ params }: ApplicationDetai
     notFound()
   }
 
+  // Transform the application data to match component expectations
+  const transformedApplication = {
+    ...application,
+    job: application.job ? {
+      id: application.job.id,
+      title: application.job.title,
+      description: application.job.description,
+      tenant: application.job.tenant
+    } : undefined,
+    assessment: application.assessment ? {
+      id: application.assessment.id,
+      prompt: application.assessment.prompt,
+      submission_content: application.assessment.submission_content,
+      submitted_at: application.assessment.submitted_at ? application.assessment.submitted_at.toISOString() : undefined,
+      composite_score: application.assessment.composite_score
+    } : undefined,
+    messages: application.messages?.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      created_at: msg.createdAt?.toISOString() || new Date().toISOString(),
+      sender: msg.sender
+    })) || []
+  }
+
   return (
     <div className="space-y-8">
-      <ApplicationDetail application={application} />
+      <ApplicationDetail application={transformedApplication as any} />
     </div>
   )
 }

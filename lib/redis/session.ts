@@ -112,7 +112,7 @@ export class SessionManager {
     try {
       const key = this.getSessionKey(sessionId)
       const result = await this.redis.expire(key, ttl)
-      return result === 1
+      return result === true
     } catch (error) {
       console.error('Session extension error:', error)
       return false
@@ -171,7 +171,7 @@ export class SessionManager {
       if (activeSessions.length === 0) return true
       
       const keys = activeSessions.map(sessionId => this.getSessionKey(sessionId))
-      const result = await this.redis.del(...keys)
+      const result = await this.redis.del(keys)
       
       return result > 0
     } catch (error) {
@@ -198,7 +198,7 @@ export class SessionManager {
       const count = await this.redis.zCard(key)
       
       if (count >= maxAttempts) {
-        const oldestEntry = await this.redis.zRange(key, 0, 0, { withScores: true })
+        const oldestEntry = await this.redis.zRangeWithScores(key, 0, 0)
         const resetTime = oldestEntry.length > 0 ? 
           parseInt(oldestEntry[0].score.toString()) + windowMs : 
           now + windowMs

@@ -1,8 +1,10 @@
-import { Redis } from 'redis'
+import { createClient } from 'redis'
 
-let redis: Redis | null = null
+type RedisClientType = ReturnType<typeof createClient>
 
-export function getRedisClient(): Redis {
+let redis: RedisClientType | null = null
+
+export function getRedisClient(): RedisClientType {
   if (!redis) {
     const redisUrl = process.env.REDIS_URL
     
@@ -10,13 +12,14 @@ export function getRedisClient(): Redis {
       throw new Error('REDIS_URL environment variable is not set')
     }
 
-    redis = new Redis(redisUrl, {
-      retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
+    redis = createClient({
+      url: redisUrl,
+      socket: {
+        reconnectStrategy: (retries) => Math.min(retries * 50, 500)
+      }
     })
 
-    redis.on('error', (error) => {
+    redis.on('error', (error: Error) => {
       console.error('Redis error:', error)
     })
 
@@ -24,7 +27,7 @@ export function getRedisClient(): Redis {
       console.log('Connected to Redis')
     })
 
-    redis.on('disconnect', () => {
+    redis.on('end', () => {
       console.log('Disconnected from Redis')
     })
   }

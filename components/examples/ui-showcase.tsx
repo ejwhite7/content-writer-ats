@@ -264,4 +264,9 @@ export function UIShowcase() {
                 This is what the content looks like when it's fully loaded. Click the button above to see the loading state.
               </p>
             </div>
-          )}\n        </CardContent>\n      </Card>\n    </div>\n  )\n}
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

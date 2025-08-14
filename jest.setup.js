@@ -1,3 +1,4 @@
+// Import Jest DOM for extended matchers
 import '@testing-library/jest-dom'
 
 // Mock Next.js router
@@ -42,6 +43,23 @@ jest.mock('next/navigation', () => ({
   },
   useSearchParams() {
     return new URLSearchParams()
+  },
+}))
+
+// Mock Next.js Image component
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: (props) => {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img {...props} />
+  },
+}))
+
+// Mock Next.js Link component
+jest.mock('next/link', () => ({
+  __esModule: true,
+  default: ({ children, href, ...props }) => {
+    return <a href={href} {...props}>{children}</a>
   },
 }))
 
@@ -115,6 +133,33 @@ jest.mock('@sentry/nextjs', () => ({
   withScope: jest.fn((callback) => callback({ setTag: jest.fn(), setContext: jest.fn() })),
 }))
 
+// Mock lucide-react icons
+jest.mock('lucide-react', () => ({
+  MapPin: ({ className, ...props }) => <svg className={className} {...props} data-testid="map-pin-icon" />,
+  Clock: ({ className, ...props }) => <svg className={className} {...props} data-testid="clock-icon" />,
+  DollarSign: ({ className, ...props }) => <svg className={className} {...props} data-testid="dollar-sign-icon" />,
+  Building: ({ className, ...props }) => <svg className={className} {...props} data-testid="building-icon" />,
+  User: ({ className, ...props }) => <svg className={className} {...props} data-testid="user-icon" />,
+  Search: ({ className, ...props }) => <svg className={className} {...props} data-testid="search-icon" />,
+  Filter: ({ className, ...props }) => <svg className={className} {...props} data-testid="filter-icon" />,
+  ChevronDown: ({ className, ...props }) => <svg className={className} {...props} data-testid="chevron-down-icon" />,
+  X: ({ className, ...props }) => <svg className={className} {...props} data-testid="x-icon" />,
+  Plus: ({ className, ...props }) => <svg className={className} {...props} data-testid="plus-icon" />,
+  Minus: ({ className, ...props }) => <svg className={className} {...props} data-testid="minus-icon" />,
+  Edit: ({ className, ...props }) => <svg className={className} {...props} data-testid="edit-icon" />,
+  Trash: ({ className, ...props }) => <svg className={className} {...props} data-testid="trash-icon" />,
+  Save: ({ className, ...props }) => <svg className={className} {...props} data-testid="save-icon" />,
+  Cancel: ({ className, ...props }) => <svg className={className} {...props} data-testid="cancel-icon" />,
+}))
+
+// Mock date-fns
+jest.mock('date-fns', () => ({
+  formatDistanceToNow: jest.fn(() => '2 days ago'),
+  format: jest.fn(() => '2024-01-15'),
+  parseISO: jest.fn((date) => new Date(date)),
+  isValid: jest.fn(() => true),
+}))
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -143,3 +188,36 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }))
+
+// Mock CSS module classes
+jest.mock('*.module.css', () => ({}))
+jest.mock('*.module.scss', () => ({}))
+
+// Mock CSS imports
+jest.mock('*.css', () => ({}))
+jest.mock('*.scss', () => ({}))
+
+// Global test utilities
+global.testUtils = {
+  createMockJob: (overrides = {}) => ({
+    id: 'test-job-1',
+    title: 'Test Job',
+    company: 'Test Company',
+    location: 'Test Location',
+    job_type: 'full_time',
+    salary_min: 50000,
+    salary_max: 70000,
+    description: 'Test job description',
+    requirements: ['Test requirement'],
+    posted_at: '2024-01-15',
+    remote_allowed: false,
+    tenants: {
+      name: 'Test Company',
+      branding_settings: {
+        primary_color: '#000000',
+        logo_url: 'https://test.com/logo.png'
+      }
+    },
+    ...overrides
+  }),
+}

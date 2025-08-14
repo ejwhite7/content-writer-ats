@@ -609,7 +609,7 @@ export async function withTenantContext<T>(
   userId: string | null,
   operation: () => Promise<T>
 ): Promise<T> {
-  await dbContext.setContext({ tenant_id: tenantId, user_id: userId })
+  await dbContext.setContext({ tenant_id: tenantId, user_id: userId || undefined })
   try {
     return await operation()
   } finally {

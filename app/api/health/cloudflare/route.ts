@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
       service: 'cloudflare',
       timestamp: new Date().toISOString(),
       zone: {
-        id: zoneInfo.id,
-        name: zoneInfo.name,
-        status: zoneInfo.status,
-        paused: zoneInfo.paused
+        id: (zoneInfo as any)?.id,
+        name: (zoneInfo as any)?.name,
+        status: (zoneInfo as any)?.status,
+        paused: (zoneInfo as any)?.paused
       },
       request_data: {
         ray: cfData.ray,

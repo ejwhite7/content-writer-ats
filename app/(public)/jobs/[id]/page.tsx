@@ -17,7 +17,7 @@ async function getJob(id: string): Promise<Job | null> {
     .from('jobs')
     .select(`
       *,
-      tenants (
+      tenant:tenants (
         name,
         branding_settings (*)
       )
@@ -43,10 +43,10 @@ export async function generateMetadata({ params }: JobDetailPageProps): Promise<
   }
 
   return {
-    title: `${job.title} - ${job.tenants?.name || 'Content Writer Job'}`,
+    title: `${job.title} - ${job.tenant?.name || 'Content Writer Job'}`,
     description: job.description?.slice(0, 160) || 'Content writing opportunity',
     openGraph: {
-      title: `${job.title} - ${job.tenants?.name || 'Content Writer Job'}`,
+      title: `${job.title} - ${job.tenant?.name || 'Content Writer Job'}`,
       description: job.description?.slice(0, 160) || 'Content writing opportunity',
       type: 'website',
     },

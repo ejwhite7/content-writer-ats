@@ -56,7 +56,7 @@ export function ReviewStep({ form, job }: ReviewStepProps) {
         <CardContent className="space-y-4">
           <div>
             <h3 className="font-semibold text-lg">{job.title}</h3>
-            <p className="text-muted-foreground">{job.tenants?.name}</p>
+            <p className="text-muted-foreground">{job.tenant?.name}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">{job.work_type}</Badge>
@@ -165,7 +165,7 @@ export function ReviewStep({ form, job }: ReviewStepProps) {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Desired Compensation:</span>
                 <span>
-                  ${formData.desiredCompensation?.amount} {COMPENSATION_FREQUENCY_LABELS[formData.desiredCompensation?.frequency]}
+                  ${formData.desiredCompensation?.amount} {formData.desiredCompensation?.frequency && COMPENSATION_FREQUENCY_LABELS[formData.desiredCompensation.frequency as keyof typeof COMPENSATION_FREQUENCY_LABELS]}
                 </span>
               </div>
               <div className="flex items-center gap-2">

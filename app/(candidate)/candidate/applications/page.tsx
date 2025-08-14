@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { Suspense } from 'react'
-import { currentUser } from '@clerk/nextjs'
+import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { ApplicationsList } from '@/components/candidate/applications-list'
 import { ApplicationsStats } from '@/components/candidate/applications-stats'

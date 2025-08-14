@@ -253,7 +253,7 @@ export class SEOAnalyzer {
   }
 
   private identifyIssues(content: string): Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high' }> {
-    const issues = []
+    const issues: Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high' }> = []
 
     // Check for keyword stuffing
     const words = content.toLowerCase().match(/\b\w{4,}\b/g) || []
@@ -271,7 +271,7 @@ export class SEOAnalyzer {
       issues.push({
         type: 'keyword-stuffing',
         message: `Potential keyword stuffing detected for: ${overOptimized.map(([word]) => word).join(', ')}`,
-        severity: 'high'
+        severity: 'high' as const
       })
     }
 
@@ -281,7 +281,7 @@ export class SEOAnalyzer {
       issues.push({
         type: 'structure',
         message: 'No headings found - add H1, H2, H3 tags for better structure',
-        severity: 'medium'
+        severity: 'medium' as const
       })
     }
 
